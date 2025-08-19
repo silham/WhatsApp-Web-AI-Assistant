@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>WhatsApp AI Assistant - Help</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #e9ecef;
+    }
+    
+    .logo {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #25d366, #128c7e);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 32px;
+    }
+    
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      color: #333;
+    }
+    
+    .subtitle {
+      color: #666;
+      font-size: 16px;
+    }
+    
+    h2 {
+      color: #25d366;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+    
+    h3 {
+      color: #333;
+      margin-top: 25px;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    
+    .step {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 15px 0;
+      border-left: 4px solid #25d366;
+    }
+    
+    .step-number {
+      background: #25d366;
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+    
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .feature-card {
+      background: white;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .feature-icon {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    
+    .code-block {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 15px;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 14px;
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+    
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    
+    .warning-icon {
+      color: #856404;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🤖</div>
+    <h1>WhatsApp AI Assistant</h1>
+    <div class="subtitle">Complete Guide & Documentation</div>
+  </div>
+
+  <h2>🚀 Getting Started</h2>
+  
+  <div class="step">
+    <span class="step-number">1</span>
+    <strong>Install the Extension:</strong> Load the extension in Chrome by going to chrome://extensions/, enabling Developer mode, and clicking "Load unpacked" to select the extension folder.
+  </div>
+  
+  <div class="step">
+    <span class="step-number">2</span>
+    <strong>Get Gemini API Key:</strong> Visit <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a> and create a free API key for Gemini.
+  </div>
+  
+  <div class="step">
+    <span class="step-number">3</span>
+    <strong>Open WhatsApp Web:</strong> Navigate to <a href="https://web.whatsapp.com" target="_blank">web.whatsapp.com</a> and scan the QR code to log in.
+  </div>
+  
+  <div class="step">
+    <span class="step-number">4</span>
+    <strong>Configure Settings:</strong> Click the floating AI button and go to Settings to enter your Gemini API key.
+  </div>
+
+  <h2>✨ Features</h2>
+  
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">📤</div>
+      <h3>Export Conversations</h3>
+      <p>Extract and download complete WhatsApp conversations as text files for backup or analysis.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3>AI Response Generation</h3>
+      <p>Generate contextually appropriate responses using Google's Gemini AI based on conversation history.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">✨</div>
+      <h3>Smart Integration</h3>
+      <p>Seamlessly insert AI-generated responses directly into WhatsApp's message input field.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <h3>Copy to Clipboard</h3>
+      <p>Easily copy generated responses to use in other applications or modify before sending.</p>
+    </div>
+  </div>
+
+  <h2>📖 How to Use</h2>
+
+  <h3>Exporting Conversations</h3>
+  <ol>
+    <li>Open any WhatsApp conversation</li>
+    <li>Click the green floating AI button (bottom-right corner)</li>
+    <li>Select "Export Conversation"</li>
+    <li>The conversation will be downloaded as a text file</li>
+  </ol>
+
+  <h3>Generating AI Responses</h3>
+  <ol>
+    <li>Make sure you've configured your Gemini API key</li>
+    <li>Open any WhatsApp conversation</li>
+    <li>Click the floating AI button</li>
+    <li>Select "Generate AI Response"</li>
+    <li>Wait for the AI to analyze the conversation and generate a response</li>
+    <li>Choose to either copy the response or insert it directly into the chat</li>
+  </ol>
+
+  <h3>Message Detection</h3>
+  <p>The extension automatically detects both incoming and outgoing messages using these CSS selectors:</p>
+  <div class="code-block">
+Incoming messages: .message-in<br>
+Outgoing messages: .message-out<br>
+Message containers: [data-testid="msg-container"]
+  </div>
+
+  <h2>⚙️ Configuration</h2>
+
+  <h3>API Key Setup</h3>
+  <ol>
+    <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a></li>
+    <li>Sign in with your Google account</li>
+    <li>Click "Create API Key"</li>
+    <li>Copy the generated API key (starts with "AIza")</li>
+    <li>In WhatsApp Web, click the AI button → Settings</li>
+    <li>Paste your API key and save</li>
+    <li>Use the "Test Connection" button to verify it works</li>
+  </ol>
+
+  <div class="warning">
+    <span class="warning-icon">⚠️ Important:</span> Keep your API key secure and never share it publicly. The extension stores it locally in your browser.
+  </div>
+
+  <h2>🔧 Technical Details</h2>
+
+  <h3>Message Extraction</h3>
+  <p>The extension uses multiple selectors to reliably extract messages:</p>
+  <ul>
+    <li><code>.selectable-text</code> - Main message text</li>
+    <li><code>[data-testid="conversation-text"]</code> - Alternative text selector</li>
+    <li><code>[data-testid="msg-time"]</code> - Message timestamps</li>
+    <li><code>[data-pre-plain-text]</code> - Sender information for group chats</li>
+  </ul>
+
+  <h3>AI Integration</h3>
+  <p>The extension uses Google's Gemini 1.5 Flash model with these parameters:</p>
+  <div class="code-block">
+API Endpoint: /v1/models/gemini-1.5-flash:generateContent<br>
+Temperature: 0.7 (balanced creativity)<br>
+Max Output Tokens: 1024<br>
+Top K: 40<br>
+Top P: 0.95
+  </div>
+
+  <h3>Supported Features</h3>
+  <ul>
+    <li>✅ Text messages</li>
+    <li>✅ Group chats</li>
+    <li>✅ Individual chats</li>
+    <li>✅ Message timestamps</li>
+    <li>✅ Sender identification</li>
+    <li>⚠️ Media messages (text extraction only)</li>
+    <li>❌ Voice messages</li>
+    <li>❌ Status updates</li>
+  </ul>
+
+  <h2>🐛 Troubleshooting</h2>
+
+  <h3>Extension Not Working</h3>
+  <ul>
+    <li>Refresh the WhatsApp Web page</li>
+    <li>Check if the extension is enabled in chrome://extensions/</li>
+    <li>Make sure you're on web.whatsapp.com (not other WhatsApp versions)</li>
+  </ul>
+
+  <h3>AI Responses Not Generating</h3>
+  <ul>
+    <li>Verify your Gemini API key is correctly entered</li>
+    <li>Check your internet connection</li>
+    <li>Ensure you haven't exceeded API rate limits</li>
+    <li>Try again in a few moments</li>
+  </ul>
+
+  <h3>Messages Not Extracting</h3>
+  <ul>
+    <li>Make sure the conversation is fully loaded</li>
+    <li>Scroll up to load older messages if needed</li>
+    <li>Refresh the page and try again</li>
+  </ul>
+
+  <h2>🔒 Privacy & Security</h2>
+  <ul>
+    <li>All message processing happens locally in your browser</li>
+    <li>API key is stored securely in Chrome's sync storage</li>
+    <li>Conversations are only sent to Gemini when you explicitly request AI responses</li>
+    <li>No data is stored on external servers (except during API calls to Google)</li>
+    <li>Extension only works on web.whatsapp.com for security</li>
+  </ul>
+
+  <h2>📝 Version History</h2>
+  <ul>
+    <li><strong>v1.0</strong> - Initial release with conversation export and AI response generation</li>
+  </ul>
+
+  <h2>📞 Support</h2>
+  <p>For issues, suggestions, or contributions, please check the extension's documentation or create an issue in the project repository.</p>
+</body>
+</html>

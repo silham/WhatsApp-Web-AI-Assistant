@@ -1,0 +1,33 @@
+{
+  "name": "whatsapp-web-ai",
+  "version": "1.0.0",
+  "description": "Chrome extension for exporting WhatsApp conversations and generating AI responses",
+  "main": "content.js",
+  "scripts": {
+    "build": "echo 'Extension built successfully'",
+    "test": "echo 'No tests specified'",
+    "package": "zip -r whatsapp-web-ai.zip . -x '*.git*' 'node_modules/*' '*.zip'",
+    "dev": "echo 'Load extension in Chrome Developer Mode from this directory'"
+  },
+  "keywords": [
+    "whatsapp",
+    "ai",
+    "gemini",
+    "chrome-extension",
+    "conversation",
+    "export",
+    "automation"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/whatsapp-web-ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/whatsapp-web-ai/issues"
+  },
+  "homepage": "https://github.com/yourusername/whatsapp-web-ai#readme",
+  "devDependencies": {},
+  "dependencies": {}
+}

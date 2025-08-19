@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 350px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #25d366, #128c7e);
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+    }
+    
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      color: #333;
+    }
+    
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    
+    .feature-list {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0;
+    }
+    
+    .feature-list li {
+      padding: 8px 0;
+      font-size: 14px;
+      color: #555;
+      display: flex;
+      align-items: center;
+    }
+    
+    .feature-list li:before {
+      content: "✓";
+      color: #25d366;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    button {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      font-size: 14px;
+    }
+    
+    .primary-btn {
+      background: #25d366;
+      color: white;
+    }
+    
+    .primary-btn:hover {
+      background: #128c7e;
+    }
+    
+    .secondary-btn {
+      background: #f8f9fa;
+      color: #333;
+      border: 1px solid #e9ecef;
+    }
+    
+    .secondary-btn:hover {
+      background: #e9ecef;
+    }
+    
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      text-align: center;
+    }
+    
+    .status-success {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .status-warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🤖</div>
+    <h1>WhatsApp AI Assistant</h1>
+    <div class="subtitle">Export & Generate AI Responses</div>
+  </div>
+  
+  <ul class="feature-list">
+    <li>Export full conversations</li>
+    <li>Generate AI responses with Gemini</li>
+    <li>Auto-insert responses</li>
+    <li>Copy to clipboard</li>
+  </ul>
+  
+  <div class="action-buttons">
+    <button id="openWhatsApp" class="primary-btn">Open WhatsApp Web</button>
+    <button id="openSettings" class="secondary-btn">Configure Settings</button>
+    <button id="viewHelp" class="secondary-btn">View Help</button>
+  </div>
+  
+  <div id="status" class="status" style="display: none;"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
