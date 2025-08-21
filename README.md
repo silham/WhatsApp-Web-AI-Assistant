@@ -91,10 +91,10 @@ document.querySelectorAll('[data-testid="msg-container"]')
 ```
 
 ### AI Integration
-- **Model**: Gemini Pro
+- **Model**: Gemini Flash ( Recommended for fast responses )
 - **Temperature**: 0.7 (balanced creativity)
 - **Max Tokens**: 1024
-- **Context**: Full conversation history
+- **Context**: 100 most recent messages
 
 ### Supported Features
 - ✅ Text messages
@@ -102,7 +102,7 @@ document.querySelectorAll('[data-testid="msg-container"]')
 - ✅ Individual chats
 - ✅ Message timestamps
 - ✅ Sender identification
-- ⚠️ Media messages (text extraction only)
+- ⚠️ Media messages (Will be available soon)
 
 ## Privacy & Security
 
