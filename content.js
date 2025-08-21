@@ -694,7 +694,21 @@ class WhatsAppAI {
     }
   }
 
-  formatConversationForAI(messages, isExport = false) {
+  formatConversationForAI(messages, instructionsOrIsExport = false, messageInstructions = '') {
+    // Handle both old and new parameter patterns
+    let isExport = false;
+    let instructions = '';
+    
+    if (typeof instructionsOrIsExport === 'boolean') {
+      // Old usage: formatConversationForAI(messages, isExport)
+      isExport = instructionsOrIsExport;
+      instructions = messageInstructions;
+    } else {
+      // New usage: formatConversationForAI(messages, messageInstructions)
+      instructions = instructionsOrIsExport || '';
+      isExport = false;
+    }
+
     const messageCount = messages.length;
     let conversation = `WhatsApp Conversation Export (${messageCount} messages):\n`;
     conversation += `Generated on: ${new Date().toLocaleString()}\n\n`;
@@ -722,6 +736,13 @@ class WhatsAppAI {
       messagesToShow.forEach(msg => {
         conversation += `[${msg.timestamp}] ${msg.sender}: ${msg.text}\n`;
       });
+      
+      // Add specific instructions for next message if provided
+      if (instructions && instructions.trim() !== '') {
+        conversation += `\n--- Instructions for next message ---\n`;
+        conversation += `${instructions.trim()}\n`;
+        conversation += `--- End instructions ---\n`;
+      }
     }
     
     return conversation;
@@ -752,6 +773,65 @@ class WhatsAppAI {
     }
   }
 
+  showInstructionsDialog() {
+    return new Promise((resolve) => {
+      // Create modal for instructions input
+      const modal = document.createElement('div');
+      modal.className = 'ai-modal';
+      modal.id = 'instructions-modal';
+      modal.innerHTML = `
+        <div class="ai-modal-content">
+          <h3>Instructions for Next Message</h3>
+          <p>Provide specific instructions for how the AI should respond to this conversation (optional):</p>
+          <textarea id="message-instructions" placeholder="Example: Be more formal, focus on technical details, be encouraging, etc." rows="4"></textarea>
+          <div class="ai-modal-buttons">
+            <button id="skip-instructions" class="ai-button secondary">Skip</button>
+            <button id="apply-instructions" class="ai-button primary">Apply Instructions</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+
+      // Focus on textarea
+      const textarea = modal.querySelector('#message-instructions');
+      textarea.focus();
+
+      // Handle skip button
+      modal.querySelector('#skip-instructions').addEventListener('click', () => {
+        document.body.removeChild(modal);
+        resolve(''); // Return empty string if skipped
+      });
+
+      // Handle apply button
+      modal.querySelector('#apply-instructions').addEventListener('click', () => {
+        const instructions = textarea.value.trim();
+        document.body.removeChild(modal);
+        resolve(instructions);
+      });
+
+      // Handle enter key in textarea (Ctrl+Enter to apply)
+      textarea.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'Enter') {
+          const instructions = textarea.value.trim();
+          document.body.removeChild(modal);
+          resolve(instructions);
+        } else if (e.key === 'Escape') {
+          document.body.removeChild(modal);
+          resolve('');
+        }
+      });
+
+      // Handle backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          document.body.removeChild(modal);
+          resolve('');
+        }
+      });
+    });
+  }
+
   async generateResponse() {
     if (!this.apiKey || this.apiKey.trim() === '') {
       this.showNotification('Please set your Gemini API key in settings', 'error');
@@ -767,6 +847,9 @@ class WhatsAppAI {
     }
 
     try {
+      // Show instructions dialog first
+      const messageInstructions = await this.showInstructionsDialog();
+      
       this.showNotification('Analyzing conversation...', 'info');
       
       const messages = await this.extractMessages();
@@ -778,7 +861,7 @@ class WhatsAppAI {
       
       this.showNotification('Generating AI response...', 'info');
       
-      const conversationText = this.formatConversationForAI(messages);
+      const conversationText = this.formatConversationForAI(messages, messageInstructions);
       console.log('Conversation to analyze:', conversationText);
       
       const response = await this.callGeminiAPI(conversationText);
@@ -825,7 +908,7 @@ Your response:`;
 
     try {
       // Updated API endpoint - using the correct v1 endpoint
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -872,13 +955,44 @@ Your response:`;
       const data = await response.json();
       console.log('Gemini API Response:', data);
       
-      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      // Check if response was truncated due to max tokens
+      const finishReason = data.candidates?.[0]?.finishReason;
+      if (finishReason === 'MAX_TOKENS') {
+        console.warn('Response was truncated due to max tokens limit');
+      }
       
-      if (!generatedText) {
+      // Try different possible response structures
+      let generatedText = null;
+      
+      // Standard Gemini response structure
+      if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        generatedText = data.candidates[0].content.parts[0].text;
+      }
+      // Alternative structure - sometimes content is directly text
+      else if (data.candidates?.[0]?.content && typeof data.candidates[0].content === 'string') {
+        generatedText = data.candidates[0].content;
+      }
+      // Another possible structure
+      else if (data.candidates?.[0]?.text) {
+        generatedText = data.candidates[0].text;
+      }
+      // Check if response contains the text at root level
+      else if (data.text) {
+        generatedText = data.text;
+      }
+      
+      if (!generatedText || generatedText.trim() === '') {
+        console.error('No text found in response structure:', JSON.stringify(data, null, 2));
+        
+        // If MAX_TOKENS, show a more helpful error
+        if (finishReason === 'MAX_TOKENS') {
+          throw new Error('Response was truncated due to length limits. Try using fewer messages or shorter instructions.');
+        }
+        
         throw new Error('No text generated by AI');
       }
       
-      return generatedText;
+      return generatedText.trim();
     } catch (error) {
       console.error('Gemini API error:', error);
       throw error;

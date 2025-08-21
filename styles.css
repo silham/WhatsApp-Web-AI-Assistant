@@ -90,7 +90,8 @@
 
 /* Modal Styles */
 #ai-response-modal,
-#ai-settings-modal {
+#ai-settings-modal,
+#instructions-modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -228,6 +229,65 @@
 
 #save-settings:hover {
   background: #0056b3;
+  transform: translateY(-1px);
+}
+
+/* Instructions Modal Styles */
+#instructions-modal .ai-modal-content {
+  max-width: 500px;
+}
+
+#instructions-modal textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+#instructions-modal textarea:focus {
+  outline: none;
+  border-color: #25d366;
+  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+}
+
+#instructions-modal .ai-modal-buttons {
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.ai-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.ai-button.primary {
+  background: #25d366;
+  color: white;
+}
+
+.ai-button.primary:hover {
+  background: #128c7e;
+  transform: translateY(-1px);
+}
+
+.ai-button.secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.ai-button.secondary:hover {
+  background: #5a6268;
   transform: translateY(-1px);
 }
 
