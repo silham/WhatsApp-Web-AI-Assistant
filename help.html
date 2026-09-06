@@ -123,95 +123,141 @@
       color: #856404;
       font-weight: bold;
     }
+
+    .language-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .language-bar select {
+      padding: 4px 8px;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
   </style>
 </head>
 <body>
+  <div class="language-bar">
+    <label for="page-language" data-i18n="help.languageLabel">Language:</label>
+    <select id="page-language"></select>
+  </div>
+
   <div class="header">
     <div class="logo">🤖</div>
-    <h1>WhatsApp AI Assistant</h1>
-    <div class="subtitle">Complete Guide & Documentation</div>
+    <h1 data-i18n="app.name">WhatsApp AI Assistant</h1>
+    <div class="subtitle" data-i18n="help.subtitle">Complete Guide &amp; Documentation</div>
   </div>
 
-  <h2>🚀 Getting Started</h2>
-  
+  <h2 data-i18n="help.start.title">🚀 Getting Started</h2>
+
   <div class="step">
     <span class="step-number">1</span>
-    <strong>Install the Extension:</strong> Load the extension in Chrome by going to chrome://extensions/, enabling Developer mode, and clicking "Load unpacked" to select the extension folder.
-  </div>
-  
-  <div class="step">
-    <span class="step-number">2</span>
-    <strong>Get an API Key:</strong> Pick a provider and create a key — see <a href="#providers">Supported providers</a> below. Most have a free tier, and a local Ollama needs no key at all.
-  </div>
-  
-  <div class="step">
-    <span class="step-number">3</span>
-    <strong>Open WhatsApp Web:</strong> Navigate to <a href="https://web.whatsapp.com" target="_blank">web.whatsapp.com</a> and scan the QR code to log in.
-  </div>
-  
-  <div class="step">
-    <span class="step-number">4</span>
-    <strong>Configure Settings:</strong> Click the floating AI button and go to Settings to pick your provider and paste its API key.
+    <strong data-i18n="help.start.1.lead">Install the Extension:</strong>
+    <span data-i18n="help.start.1.body">Load the extension in Chrome.</span>
   </div>
 
-  <h2>✨ Features</h2>
-  
+  <div class="step">
+    <span class="step-number">2</span>
+    <strong data-i18n="help.start.2.lead">Get an API Key:</strong>
+    <span data-i18n="help.start.2.body" data-i18n-html>Pick a provider and create a key.</span>
+  </div>
+
+  <div class="step">
+    <span class="step-number">3</span>
+    <strong data-i18n="help.start.3.lead">Open WhatsApp Web:</strong>
+    <span data-i18n="help.start.3.body" data-i18n-html>Navigate to web.whatsapp.com and scan the QR code to log in.</span>
+  </div>
+
+  <div class="step">
+    <span class="step-number">4</span>
+    <strong data-i18n="help.start.4.lead">Configure Settings:</strong>
+    <span data-i18n="help.start.4.body">Click the floating AI button and go to Settings.</span>
+  </div>
+
+  <h2 data-i18n="help.features.title">✨ Features</h2>
+
   <div class="feature-grid">
     <div class="feature-card">
       <div class="feature-icon">📤</div>
-      <h3>Export Conversations</h3>
-      <p>Extract and download complete WhatsApp conversations as text files for backup or analysis.</p>
+      <h3 data-i18n="help.features.export.title">Export Conversations</h3>
+      <p data-i18n="help.features.export.body">Extract and download complete WhatsApp conversations as text files.</p>
     </div>
-    
+
     <div class="feature-card">
       <div class="feature-icon">🤖</div>
-      <h3>AI Response Generation</h3>
-      <p>Generate contextually appropriate responses from the conversation history, using the AI provider of your choice.</p>
+      <h3 data-i18n="help.features.generate.title">AI Response Generation</h3>
+      <p data-i18n="help.features.generate.body">Generate contextually appropriate responses from the conversation history.</p>
     </div>
-    
+
     <div class="feature-card">
       <div class="feature-icon">✨</div>
-      <h3>Smart Integration</h3>
-      <p>Seamlessly insert AI-generated responses directly into WhatsApp's message input field.</p>
+      <h3 data-i18n="help.features.insert.title">Smart Integration</h3>
+      <p data-i18n="help.features.insert.body">Insert AI-generated responses directly into WhatsApp's message input field.</p>
     </div>
-    
+
     <div class="feature-card">
       <div class="feature-icon">📋</div>
-      <h3>Copy to Clipboard</h3>
-      <p>Easily copy generated responses to use in other applications or modify before sending.</p>
+      <h3 data-i18n="help.features.copy.title">Copy to Clipboard</h3>
+      <p data-i18n="help.features.copy.body">Copy generated responses to use in other applications.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🌐</div>
+      <h3 data-i18n="help.features.language.title">Your Language</h3>
+      <p data-i18n="help.features.language.body">Read the extension in English or Tamil, and have the AI draft replies in any language you pick.</p>
     </div>
   </div>
 
-  <h2>📖 How to Use</h2>
+  <h2 data-i18n="help.howTo.title">📖 How to Use</h2>
 
-  <h3>Exporting Conversations</h3>
+  <h3 data-i18n="help.howTo.export.title">Exporting Conversations</h3>
   <ol>
-    <li>Open any WhatsApp conversation</li>
-    <li>Click the green floating AI button (bottom-right corner)</li>
-    <li>Select "Export Conversation"</li>
-    <li>The conversation will be downloaded as a text file</li>
+    <li data-i18n="help.howTo.export.1">Open any WhatsApp conversation</li>
+    <li data-i18n="help.howTo.export.2">Click the green floating AI button</li>
+    <li data-i18n="help.howTo.export.3">Select "Export Conversation"</li>
+    <li data-i18n="help.howTo.export.4">The conversation will be downloaded as a text file</li>
   </ol>
 
-  <h3>Generating AI Responses</h3>
+  <h3 data-i18n="help.howTo.generate.title">Generating AI Responses</h3>
   <ol>
-    <li>Make sure you've configured a provider and its API key</li>
-    <li>Open any WhatsApp conversation</li>
-    <li>Click the floating AI button</li>
-    <li>Select "Generate AI Response"</li>
-    <li>Wait for the AI to analyze the conversation and generate a response</li>
-    <li>Choose to either copy the response or insert it directly into the chat</li>
+    <li data-i18n="help.howTo.generate.1">Make sure you've configured a provider and its API key</li>
+    <li data-i18n="help.howTo.generate.2">Open any WhatsApp conversation</li>
+    <li data-i18n="help.howTo.generate.3">Click the floating AI button</li>
+    <li data-i18n="help.howTo.generate.4">Select "Generate AI Response"</li>
+    <li data-i18n="help.howTo.generate.5">Wait for the AI to analyze the conversation</li>
+    <li data-i18n="help.howTo.generate.6">Copy the response or insert it directly into the chat</li>
   </ol>
 
-  <h3>Message Detection</h3>
-  <p>The extension automatically detects both incoming and outgoing messages using these CSS selectors:</p>
+  <h3 data-i18n="help.howTo.detect.title">Message Detection</h3>
+  <p data-i18n="help.howTo.detect.body">The extension automatically detects both incoming and outgoing messages using these CSS selectors:</p>
   <div class="code-block">
 Incoming messages: .message-in<br>
 Outgoing messages: .message-out<br>
 Message containers: [data-testid="msg-container"]
   </div>
 
-  <h2 id="providers">🔌 Supported providers</h2>
-  <p>Pick one in Settings. Keys are remembered per provider, so you can switch between them without pasting a key again.</p>
+  <h2 id="language" data-i18n="help.language.title">🌐 Language</h2>
+  <p data-i18n="help.language.body">Two separate settings, both in the AI button → Settings dialog.</p>
+  <ul>
+    <li>
+      <strong data-i18n="help.language.ui.lead">Interface Language:</strong>
+      <span data-i18n="help.language.ui.body">The language of the extension's own menus, dialogs and messages.</span>
+    </li>
+    <li>
+      <strong data-i18n="help.language.reply.lead">Reply Language:</strong>
+      <span data-i18n="help.language.reply.body">The language the AI writes its drafts in.</span>
+    </li>
+  </ul>
+  <p data-i18n="help.language.note">The two are independent.</p>
+
+  <h2 id="providers" data-i18n="help.providers.title">🔌 Supported providers</h2>
+  <p data-i18n="help.providers.body">Pick one in Settings. Keys are remembered per provider.</p>
   <ul>
     <li><strong>Google Gemini</strong> — <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a></li>
     <li><strong>Anthropic Claude</strong> — <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic Console</a></li>
@@ -221,105 +267,117 @@ Message containers: [data-testid="msg-container"]
     <li><strong>DeepSeek</strong> — <a href="https://platform.deepseek.com/api_keys" target="_blank">DeepSeek platform</a></li>
     <li><strong>Mistral AI</strong> — <a href="https://console.mistral.ai/api-keys" target="_blank">Mistral console</a></li>
     <li><strong>xAI Grok</strong> — <a href="https://console.x.ai/" target="_blank">xAI console</a></li>
-    <li><strong>Ollama</strong> — a model running on your own machine, no key required</li>
-    <li><strong>Custom</strong> — any endpoint serving <code>/chat/completions</code>: LM Studio, vLLM, Together, Fireworks, an Azure OpenAI gateway, or your own proxy</li>
+    <li><strong>Ollama</strong> — <span data-i18n="help.providers.ollama">a model running on your own machine, no key required</span></li>
+    <li><strong>Custom</strong> — <span data-i18n="help.providers.custom" data-i18n-html>any endpoint serving <code>/chat/completions</code></span></li>
   </ul>
 
-  <h2>⚙️ Configuration</h2>
+  <h2 data-i18n="help.config.title">⚙️ Configuration</h2>
 
-  <h3>API Key Setup</h3>
+  <h3 data-i18n="help.config.key.title">API Key Setup</h3>
   <ol>
-    <li>Create a key at your provider, from the links above</li>
-    <li>In WhatsApp Web, click the AI button → Settings</li>
-    <li>Choose the provider from the dropdown</li>
-    <li>Paste your API key</li>
-    <li>Optionally set a model — leave it blank for the provider's default, or press "Load models from provider" to see what your key can reach</li>
-    <li>Save, then use "Test Connection" to verify it works</li>
+    <li data-i18n="help.config.key.1">Create a key at your provider, from the links above</li>
+    <li data-i18n="help.config.key.2">In WhatsApp Web, click the AI button → Settings</li>
+    <li data-i18n="help.config.key.3">Choose the provider from the dropdown</li>
+    <li data-i18n="help.config.key.4">Paste your API key</li>
+    <li data-i18n="help.config.key.5">Optionally set a model</li>
+    <li data-i18n="help.config.key.6">Save, then use "Test Connection" to verify it works</li>
   </ol>
 
-  <h3>Custom and local endpoints</h3>
-  <p>Chrome only lets the extension reach the hosts listed in its manifest. A custom endpoint or a local Ollama is not one of them, so open the extension popup once and press "Grant access" — Chrome can only ask for that permission from the popup.</p>
-  <p>Running Ollama? Start it with <code>OLLAMA_ORIGINS=*</code> so it accepts the extension's requests.</p>
+  <h3 data-i18n="help.config.custom.title">Custom and local endpoints</h3>
+  <p data-i18n="help.config.custom.1">Chrome only lets the extension reach the hosts listed in its manifest.</p>
+  <p data-i18n="help.config.custom.2" data-i18n-html>Running Ollama? Start it with <code>OLLAMA_ORIGINS=*</code>.</p>
 
   <div class="warning">
-    <span class="warning-icon">⚠️ Important:</span> Keep your API key secure and never share it publicly. The extension stores it locally in your browser.
+    <span class="warning-icon" data-i18n="help.config.warning.lead">⚠️ Important:</span>
+    <span data-i18n="help.config.warning.body">Keep your API key secure and never share it publicly.</span>
   </div>
 
-  <h2>🔧 Technical Details</h2>
+  <h2 data-i18n="help.tech.title">🔧 Technical Details</h2>
 
-  <h3>Message Extraction</h3>
-  <p>The extension uses multiple selectors to reliably extract messages:</p>
+  <h3 data-i18n="help.tech.extract.title">Message Extraction</h3>
+  <p data-i18n="help.tech.extract.body">The extension uses multiple selectors to reliably extract messages:</p>
   <ul>
-    <li><code>.selectable-text</code> - Main message text</li>
-    <li><code>[data-testid="conversation-text"]</code> - Alternative text selector</li>
-    <li><code>[data-testid="msg-time"]</code> - Message timestamps</li>
-    <li><code>[data-pre-plain-text]</code> - Sender information for group chats</li>
+    <li><code>.selectable-text</code> - <span data-i18n="help.tech.extract.1">Main message text</span></li>
+    <li><code>[data-testid="conversation-text"]</code> - <span data-i18n="help.tech.extract.2">Alternative text selector</span></li>
+    <li><code>[data-testid="msg-time"]</code> - <span data-i18n="help.tech.extract.3">Message timestamps</span></li>
+    <li><code>[data-pre-plain-text]</code> - <span data-i18n="help.tech.extract.4">Sender information for group chats</span></li>
   </ul>
 
-  <h3>AI Integration</h3>
-  <p>Whichever provider you pick is called with the same generation settings:</p>
+  <h3 data-i18n="help.tech.ai.title">AI Integration</h3>
+  <p data-i18n="help.tech.ai.body">Whichever provider you pick is called with the same generation settings:</p>
   <div class="code-block">
-Provider: your choice (see above)<br>
-Model: the provider's default, or whatever you set<br>
-Temperature: 0.7 (balanced creativity)<br>
-Max Output Tokens: 1024<br>
-Context: up to the 100 most recent messages
+<span data-i18n="help.tech.ai.provider">Provider: your choice (see above)</span><br>
+<span data-i18n="help.tech.ai.model">Model: the provider's default, or whatever you set</span><br>
+<span data-i18n="help.tech.ai.temperature">Temperature: 0.7 (balanced creativity)</span><br>
+<span data-i18n="help.tech.ai.tokens">Max Output Tokens: 1024</span><br>
+<span data-i18n="help.tech.ai.context">Context: up to the 100 most recent messages</span>
   </div>
-  <p>Requests are made from the extension's background service worker, not from the page, so every provider is reachable regardless of its CORS policy.</p>
+  <p data-i18n="help.tech.ai.note">Requests are made from the extension's background service worker.</p>
 
-  <h3>Supported Features</h3>
+  <h3 data-i18n="help.tech.supported.title">Supported Features</h3>
   <ul>
-    <li>✅ Text messages</li>
-    <li>✅ Group chats</li>
-    <li>✅ Individual chats</li>
-    <li>✅ Message timestamps</li>
-    <li>✅ Sender identification</li>
-    <li>⚠️ Media messages (text extraction only)</li>
-    <li>❌ Voice messages</li>
-    <li>❌ Status updates</li>
+    <li data-i18n="help.tech.supported.1">✅ Text messages</li>
+    <li data-i18n="help.tech.supported.2">✅ Group chats</li>
+    <li data-i18n="help.tech.supported.3">✅ Individual chats</li>
+    <li data-i18n="help.tech.supported.4">✅ Message timestamps</li>
+    <li data-i18n="help.tech.supported.5">✅ Sender identification</li>
+    <li data-i18n="help.tech.supported.6">⚠️ Media messages (text extraction only)</li>
+    <li data-i18n="help.tech.supported.7">❌ Voice messages</li>
+    <li data-i18n="help.tech.supported.8">❌ Status updates</li>
   </ul>
 
-  <h2>🐛 Troubleshooting</h2>
+  <h2 data-i18n="help.trouble.title">🐛 Troubleshooting</h2>
 
-  <h3>Extension Not Working</h3>
+  <h3 data-i18n="help.trouble.notWorking.title">Extension Not Working</h3>
   <ul>
-    <li>Refresh the WhatsApp Web page</li>
-    <li>Check if the extension is enabled in chrome://extensions/</li>
-    <li>Make sure you're on web.whatsapp.com (not other WhatsApp versions)</li>
+    <li data-i18n="help.trouble.notWorking.1">Refresh the WhatsApp Web page</li>
+    <li data-i18n="help.trouble.notWorking.2">Check if the extension is enabled in chrome://extensions/</li>
+    <li data-i18n="help.trouble.notWorking.3">Make sure you're on web.whatsapp.com</li>
   </ul>
 
-  <h3>AI Responses Not Generating</h3>
+  <h3 data-i18n="help.trouble.noResponse.title">AI Responses Not Generating</h3>
   <ul>
-    <li>Verify the API key matches the provider selected in Settings</li>
-    <li>Press "Test Connection" in Settings — it reports the provider's own error</li>
-    <li>A 404 usually means the model name is wrong; clear it to use the default</li>
-    <li>For a custom or local endpoint, grant access to its host from the extension popup</li>
-    <li>Check your internet connection and that you haven't exceeded the provider's rate limits</li>
+    <li data-i18n="help.trouble.noResponse.1">Verify the API key matches the provider selected in Settings</li>
+    <li data-i18n="help.trouble.noResponse.2">Press "Test Connection" in Settings</li>
+    <li data-i18n="help.trouble.noResponse.3">A 404 usually means the model name is wrong</li>
+    <li data-i18n="help.trouble.noResponse.4">For a custom endpoint, grant access from the extension popup</li>
+    <li data-i18n="help.trouble.noResponse.5">Check your internet connection and rate limits</li>
   </ul>
 
-  <h3>Messages Not Extracting</h3>
+  <h3 data-i18n="help.trouble.noMessages.title">Messages Not Extracting</h3>
   <ul>
-    <li>Make sure the conversation is fully loaded</li>
-    <li>Scroll up to load older messages if needed</li>
-    <li>Refresh the page and try again</li>
+    <li data-i18n="help.trouble.noMessages.1">Make sure the conversation is fully loaded</li>
+    <li data-i18n="help.trouble.noMessages.2">Scroll up to load older messages if needed</li>
+    <li data-i18n="help.trouble.noMessages.3">Refresh the page and try again</li>
   </ul>
 
-  <h2>🔒 Privacy & Security</h2>
+  <h3 data-i18n="help.trouble.wrongLanguage.title">Replies Come Back in the Wrong Language</h3>
   <ul>
-    <li>All message processing happens locally in your browser</li>
-    <li>API keys are stored in Chrome's sync storage, one per provider</li>
-    <li>Conversations are only sent to the provider you selected, and only when you explicitly request an AI response</li>
-    <li>No data is stored on external servers (except during API calls to your provider)</li>
-    <li>Extension only works on web.whatsapp.com for security</li>
+    <li data-i18n="help.trouble.wrongLanguage.1">Set Reply Language in Settings rather than in the System Instructions box</li>
+    <li data-i18n="help.trouble.wrongLanguage.2">Smaller models are weaker at languages other than English</li>
   </ul>
 
-  <h2>📝 Version History</h2>
+  <h2 data-i18n="help.privacy.title">🔒 Privacy &amp; Security</h2>
   <ul>
-    <li><strong>v1.3</strong> - Choose any AI provider: Gemini, Claude, GPT, OpenRouter, Groq, DeepSeek, Mistral, Grok, Ollama or a custom endpoint</li>
-    <li><strong>v1.0</strong> - Initial release with conversation export and AI response generation</li>
+    <li data-i18n="help.privacy.1">All message processing happens locally in your browser</li>
+    <li data-i18n="help.privacy.2">API keys are stored in Chrome's sync storage, one per provider</li>
+    <li data-i18n="help.privacy.3">Conversations are only sent to the provider you selected</li>
+    <li data-i18n="help.privacy.4">No data is stored on external servers</li>
+    <li data-i18n="help.privacy.5">Extension only works on web.whatsapp.com for security</li>
   </ul>
 
-  <h2>📞 Support</h2>
-  <p>For issues, suggestions, or contributions, please check the extension's documentation or create an issue in the project repository.</p>
+  <h2 data-i18n="help.versions.title">📝 Version History</h2>
+  <ul>
+    <li><strong>v1.3</strong> - <span data-i18n="help.versions.13">Choose any AI provider</span></li>
+    <li><strong>v1.0</strong> - <span data-i18n="help.versions.10">Initial release</span></li>
+  </ul>
+
+  <h2 data-i18n="help.support.title">📞 Support</h2>
+  <p data-i18n="help.support.body">For issues, suggestions, or contributions, please check the extension's documentation.</p>
+
+  <script src="lib/i18n.js"></script>
+  <script src="lib/providers.js"></script>
+  <script src="lib/settings.js"></script>
+  <script src="help.js"></script>
 </body>
 </html>

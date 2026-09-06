@@ -10,7 +10,7 @@ importScripts('lib/providers.js');
 
 /* global LLMProviders */
 
-const CONTENT_SCRIPT_FILES = ['lib/timestamps.js', 'lib/providers.js', 'lib/settings.js', 'content.js'];
+const CONTENT_SCRIPT_FILES = ['lib/i18n.js', 'lib/timestamps.js', 'lib/providers.js', 'lib/settings.js', 'content.js'];
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('WhatsApp AI Assistant installed');

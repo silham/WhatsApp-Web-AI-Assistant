@@ -20,6 +20,7 @@ response — and then only to the provider you picked. You bring your own API ke
 - ⚙️ **Custom System Instructions**: Personalize AI behavior with custom instructions and presets
 - ✨ **Smart Integration**: Insert AI-generated responses directly into WhatsApp's message input
 - 📋 **Copy to Clipboard**: Easily copy generated responses for use elsewhere
+- 🌐 **Your Language**: Read the extension in English or Tamil, and have the AI reply in any of thirteen languages - the two are set independently
 - 🔒 **Privacy-Focused**: All processing happens locally in your browser
 
 ## Installation
@@ -97,11 +98,31 @@ runtime, which it can only do from the popup.
    - "Always respond in a professional manner"
    - "Keep responses brief and to the point"  
    - "Act as a customer support agent"
-   - "Respond in Spanish with enthusiasm"
+   - "Reply warmly and keep it personal"
 3. Use preset buttons for common instruction templates
 4. Save your settings
 
 The AI will use these instructions to tailor its responses to your needs.
+
+### Choosing a Language
+
+Two independent settings, both in the AI button -> Settings dialog:
+
+- **Interface Language** - the extension's own menus, dialogs and messages.
+  English and Tamil (தமிழ்) are available. Changing it redraws the interface
+  straight away; nothing needs reloading. The help page has the same picker.
+- **Reply Language** - the language the AI drafts replies in, whatever language
+  the chat itself is in. Leave it on **Auto** to follow the conversation, or
+  pin it to Tamil, English, Sinhala, Hindi, Arabic, Spanish, French, German,
+  Portuguese, Russian, Chinese or Japanese.
+
+Prefer the Reply Language setting over asking for a language in the System
+Instructions box: it is appended to the system prompt last, so it wins over
+anything in the custom instructions that says otherwise.
+
+Adding a language means adding one entry to `MESSAGES` in
+[`lib/i18n.js`](lib/i18n.js) - the test suite checks that every locale defines
+the same keys, with the same placeholders, as English.
 
 ## How It Works
 

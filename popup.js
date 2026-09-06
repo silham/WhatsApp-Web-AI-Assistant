@@ -1,18 +1,26 @@
 // Popup script for WhatsApp AI Assistant
-/* global LLMProviders, AISettings */
-document.addEventListener('DOMContentLoaded', function() {
+/* global LLMProviders, AISettings, I18n */
+document.addEventListener('DOMContentLoaded', async function() {
   const openWhatsAppBtn = document.getElementById('openWhatsApp');
   const openSettingsBtn = document.getElementById('openSettings');
   const viewHelpBtn = document.getElementById('viewHelp');
   const statusDiv = document.getElementById('status');
 
+  const t = (key, params) => I18n.t(key, params);
+
+  // The markup ships in English; whichever language the user picked in the
+  // settings dialog replaces it before anything else runs.
+  const settings = await AISettings.load();
+  I18n.setLocale(settings.uiLanguage);
+  I18n.applyToDom(document);
+
   // Check if we're already on WhatsApp Web
   chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
     const currentTab = tabs[0];
     if (currentTab.url && currentTab.url.includes('web.whatsapp.com')) {
-      openWhatsAppBtn.textContent = 'WhatsApp Web Active';
+      openWhatsAppBtn.textContent = t('popup.whatsappActive');
       openWhatsAppBtn.style.background = '#28a745';
-      showStatus('Extension is active on WhatsApp Web', 'success');
+      showStatus(t('popup.extensionActive'), 'success');
     }
   });
 
@@ -23,11 +31,11 @@ document.addEventListener('DOMContentLoaded', function() {
       if (currentTab.url && currentTab.url.includes('web.whatsapp.com')) {
         // Already on WhatsApp Web, just refresh the content script
         chrome.tabs.reload(currentTab.id);
-        showStatus('Refreshing WhatsApp Web...', 'success');
+        showStatus(t('popup.refreshing'), 'success');
       } else {
         // Open WhatsApp Web
         chrome.tabs.create({ url: 'https://web.whatsapp.com' });
-        showStatus('Opening WhatsApp Web...', 'success');
+        showStatus(t('popup.opening'), 'success');
       }
     });
   });
@@ -41,14 +49,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Send message to content script to open settings
         chrome.tabs.sendMessage(currentTab.id, { action: 'openSettings' }, function(response) {
           if (chrome.runtime.lastError) {
-            showStatus('Please refresh WhatsApp Web first', 'error');
+            showStatus(t('popup.refreshFirst'), 'error');
           } else {
-            showStatus('Opening settings...', 'success');
+            showStatus(t('popup.openingSettings'), 'success');
             window.close();
           }
         });
       } else {
-        showStatus('Please open WhatsApp Web first', 'warning');
+        showStatus(t('popup.openFirst'), 'warning');
       }
     });
   });
@@ -57,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.tabs.create({ url: chrome.runtime.getURL('help.html') });
   });
 
-  showConfiguredProvider();
+  showConfiguredProvider(settings);
 
   /**
    * Shows which provider is selected and, when it sits on a host the manifest
@@ -67,13 +75,14 @@ document.addEventListener('DOMContentLoaded', function() {
    * gesture and an extension page, neither of which the settings modal on
    * WhatsApp Web can provide.
    */
-  async function showConfiguredProvider() {
-    const settings = await AISettings.load();
+  async function showConfiguredProvider(settings) {
     const config = AISettings.activeConfig(settings);
     const provider = LLMProviders.get(config.provider);
 
     const providerLine = document.getElementById('providerLine');
-    providerLine.innerHTML = `Using <strong>${provider.label}</strong> &middot; ${config.model || 'default model'}`;
+    providerLine.innerHTML =
+      `${t('popup.using', { provider: `<strong>${provider.label}</strong>` })} &middot; ` +
+      `${config.model || t('popup.defaultModel')}`;
 
     if (!config.baseUrl) return;
 
@@ -81,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       origin = `${new URL(config.baseUrl).origin}/*`;
     } catch (error) {
-      providerLine.innerHTML += '<br>Base URL is not a valid URL - fix it in settings.';
+      providerLine.innerHTML += `<br>${t('popup.badBaseUrl')}`;
       return;
     }
 
@@ -89,16 +98,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const notice = document.getElementById('permissionNotice');
     document.getElementById('permissionText').textContent =
-      `Chrome needs your permission before the extension can reach ${new URL(config.baseUrl).host}.`;
+      t('popup.permissionNeeded', { host: new URL(config.baseUrl).host });
     notice.style.display = 'block';
 
     document.getElementById('grantPermission').addEventListener('click', async () => {
       const granted = await chrome.permissions.request({ origins: [origin] });
       if (granted) {
         notice.style.display = 'none';
-        showStatus('Access granted', 'success');
+        showStatus(t('popup.accessGranted'), 'success');
       } else {
-        showStatus('Access denied - the provider cannot be reached', 'error');
+        showStatus(t('popup.accessDenied'), 'error');
       }
     });
   }

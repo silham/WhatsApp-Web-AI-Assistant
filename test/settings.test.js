@@ -99,3 +99,39 @@ test('corrupt storage is treated as empty rather than crashing the content scrip
   assert.deepEqual(loaded.apiKeys, {});
   assert.deepEqual(loaded.models, {});
 });
+
+test('a fresh install starts in English with the reply language on auto', () => {
+  const loaded = settings.fromStored({});
+
+  assert.equal(loaded.uiLanguage, 'en');
+  assert.equal(loaded.replyLanguage, settings.DEFAULT_REPLY_LANGUAGE);
+});
+
+test('a chosen interface language and reply language survive a round trip', () => {
+  const stored = settings.toStored(
+    settings.fromStored({ uiLanguage: 'ta', replyLanguage: 'ta' })
+  );
+
+  assert.equal(stored.uiLanguage, 'ta');
+  assert.equal(stored.replyLanguage, 'ta');
+  assert.equal(settings.fromStored(stored).uiLanguage, 'ta');
+  assert.equal(settings.fromStored(stored).replyLanguage, 'ta');
+});
+
+test('a region tag stored as the interface language is folded to its base', () => {
+  assert.equal(settings.fromStored({ uiLanguage: 'ta-LK' }).uiLanguage, 'ta');
+});
+
+test('a language that no longer exists falls back instead of breaking the UI', () => {
+  const loaded = settings.fromStored({ uiLanguage: 'kl', replyLanguage: 'kl' });
+
+  assert.equal(loaded.uiLanguage, 'en');
+  assert.equal(loaded.replyLanguage, 'auto');
+});
+
+test('the interface language does not disturb the reply language', () => {
+  const loaded = settings.fromStored({ uiLanguage: 'ta', replyLanguage: 'en' });
+
+  assert.equal(loaded.uiLanguage, 'ta');
+  assert.equal(loaded.replyLanguage, 'en', 'reading Tamil menus must not force Tamil replies');
+});

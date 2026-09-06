@@ -82,6 +82,59 @@ if (manifest && pkg) {
       fail(`manifest.json references "${file}", which does not exist`);
     }
   }
+
+  checkLocales(manifest);
+}
+
+/**
+ * Every __MSG_key__ in the manifest has to resolve in the default locale, and
+ * every other locale has to define the same keys - a missing one makes Chrome
+ * reject the whole extension at load time with a message that names neither the
+ * key nor the file.
+ */
+function checkLocales(manifest) {
+  const placeholders = new Set();
+  const scan = (value) => {
+    if (typeof value === 'string') {
+      const match = /^__MSG_(\w+)__$/.exec(value);
+      if (match) placeholders.add(match[1]);
+    } else if (value && typeof value === 'object') {
+      Object.values(value).forEach(scan);
+    }
+  };
+  scan(manifest);
+
+  if (placeholders.size === 0) return;
+
+  if (!manifest.default_locale) {
+    fail('manifest.json uses __MSG_ placeholders but has no "default_locale"');
+    return;
+  }
+
+  const localesDir = path.join(ROOT, '_locales');
+  if (!fs.existsSync(localesDir)) {
+    fail('manifest.json sets "default_locale" but there is no _locales/ directory');
+    return;
+  }
+
+  const locales = fs.readdirSync(localesDir).filter((entry) =>
+    fs.statSync(path.join(localesDir, entry)).isDirectory()
+  );
+
+  if (!locales.includes(manifest.default_locale)) {
+    fail(`default_locale is "${manifest.default_locale}" but _locales/${manifest.default_locale}/ is missing`);
+  }
+
+  for (const locale of locales) {
+    const messages = readJson(path.join('_locales', locale, 'messages.json'));
+    if (!messages) continue;
+
+    for (const key of placeholders) {
+      if (!messages[key] || typeof messages[key].message !== 'string') {
+        fail(`_locales/${locale}/messages.json is missing the "${key}" message`);
+      }
+    }
+  }
 }
 
 if (errors.length > 0) {
@@ -91,4 +144,11 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`manifest check passed (${manifest.name} v${manifest.version})`);
+// manifest.name is a __MSG_ placeholder now, so report the resolved one.
+const defaultMessages = manifest.default_locale
+  ? readJson(path.join('_locales', manifest.default_locale, 'messages.json'))
+  : null;
+const displayName = (defaultMessages && defaultMessages.extName && defaultMessages.extName.message) ||
+  manifest.name;
+
+console.log(`manifest check passed (${displayName} v${manifest.version})`);

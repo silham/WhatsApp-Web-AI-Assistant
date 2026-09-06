@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "WhatsApp Web AI Assistant",
+    "description": "Extension name, shown in chrome://extensions and the Web Store."
+  },
+  "extDescription": {
+    "message": "Export WhatsApp conversations and draft replies with the AI provider of your choice",
+    "description": "Extension description, shown in chrome://extensions and the Web Store."
+  },
+  "actionTitle": {
+    "message": "WhatsApp AI Assistant",
+    "description": "Tooltip on the toolbar button."
+  }
+}

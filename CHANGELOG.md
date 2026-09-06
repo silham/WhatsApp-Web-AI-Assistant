@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Tamil. The whole interface - the floating menu, every dialog, every
+  notification, the popup and the help page - is available in Tamil, chosen
+  with the new "Interface Language" setting. Switching redraws the interface
+  immediately; there is nothing to reload.
+- A "Reply Language" setting that pins the language the AI drafts in, separate
+  from the interface language, with thirteen options and an "Auto" default that
+  follows the conversation. The instruction is appended to the system prompt
+  last, so it takes precedence over anything in the custom instructions.
+- `lib/i18n.js` holds every interface string and the locale lookup, and is unit
+  tested - including a check that each locale defines exactly the same keys,
+  with the same placeholders, as English.
+- The help page carries its own language picker, which writes the choice back
+  to settings.
+
+### Changed
+
+- The extension's name and description in `chrome://extensions` and the Web
+  Store now come from `_locales/`, so they are localised too. Only those
+  manifest fields use `chrome.i18n` - the interface itself does not, because a
+  `chrome.i18n` locale follows the browser's UI language and cannot be changed
+  from inside the extension.
+
 ## [1.3.0] - 2026-09-01
 
 ### Added
