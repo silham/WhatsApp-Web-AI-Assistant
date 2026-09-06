@@ -53,7 +53,7 @@ key again.
 
 | Provider | Default model | Where to get a key |
 | --- | --- | --- |
-| Google Gemini | `gemini-2.0-flash` | [Google AI Studio](https://aistudio.google.com/app/apikey) |
+| Google Gemini | `gemini-3.5-flash` | [Google AI Studio](https://aistudio.google.com/app/apikey) |
 | Anthropic Claude | `claude-sonnet-5` | [Anthropic Console](https://console.anthropic.com/settings/keys) |
 | OpenAI | `gpt-4o-mini` | [OpenAI dashboard](https://platform.openai.com/api-keys) |
 | OpenRouter | `openai/gpt-4o-mini` | [OpenRouter keys](https://openrouter.ai/keys) |

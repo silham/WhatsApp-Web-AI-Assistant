@@ -23,6 +23,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The help page carries its own language picker, which writes the choice back
   to settings.
 
+### Fixed
+
+- Generation no longer fails with "Endpoint or model not found". Google shut
+  down `gemini-2.0-flash` - until now the extension's default - on 1 June 2026.
+  The default is `gemini-3.5-flash`, Google's own migration target for it, and
+  the model list offers the current 3.x and 2.5 line.
+- An install that had explicitly pinned a withdrawn model is moved to its
+  replacement on load, rather than 404ing on every request until the user
+  happens to open the model picker. Providers now declare their retirements in
+  `retiredModels`, so the next one is a data change.
+
 ### Changed
 
 - The extension's name and description in `chrome://extensions` and the Web

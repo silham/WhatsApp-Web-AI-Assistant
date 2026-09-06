@@ -135,3 +135,20 @@ test('the interface language does not disturb the reply language', () => {
   assert.equal(loaded.uiLanguage, 'ta');
   assert.equal(loaded.replyLanguage, 'en', 'reading Tamil menus must not force Tamil replies');
 });
+
+test('a pinned model that the vendor withdrew is migrated to its replacement', () => {
+  const stored = { aiModels: { gemini: 'gemini-2.0-flash', openai: 'gpt-4o-mini' } };
+  const loaded = settings.fromStored(stored);
+
+  assert.equal(loaded.models.gemini, 'gemini-3.5-flash');
+  assert.equal(loaded.models.openai, 'gpt-4o-mini', 'a current model is left alone');
+  assert.equal(loaded.migrated, true, 'the rewrite has to be persisted');
+  assert.equal(stored.aiModels.gemini, 'gemini-2.0-flash', 'the stored object is not mutated');
+});
+
+test('a settings load with only current models is not flagged as migrated', () => {
+  const loaded = settings.fromStored({ aiModels: { gemini: 'gemini-2.5-pro' } });
+
+  assert.equal(loaded.models.gemini, 'gemini-2.5-pro');
+  assert.equal(loaded.migrated, false);
+});
