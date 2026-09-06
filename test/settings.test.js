@@ -152,3 +152,98 @@ test('a settings load with only current models is not flagged as migrated', () =
   assert.equal(loaded.models.gemini, 'gemini-2.5-pro');
   assert.equal(loaded.migrated, false);
 });
+
+/**
+ * Reloading the extension orphans the content script already in the tab. Every
+ * chrome.* call from it then throws, and an unhandled one shows up as a raw
+ * "Extension context invalidated" in the page console - the failure this suite
+ * pins down, because the user's only way out is to refresh the page.
+ */
+
+const i18n = require('../lib/i18n.js');
+
+/** Runs a body with chrome.* stubbed, restoring whatever was there before. */
+async function withChrome(stub, body) {
+  const had = Object.prototype.hasOwnProperty.call(globalThis, 'chrome');
+  const previous = globalThis.chrome;
+  globalThis.chrome = stub;
+
+  try {
+    return await body();
+  } finally {
+    if (had) globalThis.chrome = previous;
+    else delete globalThis.chrome;
+  }
+}
+
+/** A live extension: an id on runtime, and storage that records what it got. */
+function liveChrome(initial = {}) {
+  const written = {};
+  const removed = [];
+
+  return {
+    written,
+    removed,
+    runtime: { id: 'test-extension-id' },
+    storage: {
+      sync: {
+        get: async () => initial,
+        set: async (items) => Object.assign(written, items),
+        remove: async (key) => removed.push(key)
+      }
+    }
+  };
+}
+
+test('settings load and save go through chrome.storage.sync', async () => {
+  const stub = liveChrome({ aiProvider: 'groq', aiApiKeys: { groq: 'gsk_x' } });
+
+  await withChrome(stub, async () => {
+    const loaded = await settings.load();
+    assert.equal(loaded.provider, 'groq');
+
+    await settings.save(loaded);
+  });
+
+  assert.equal(stub.written.aiProvider, 'groq');
+  assert.deepEqual(stub.removed, ['geminiApiKey'], 'the legacy key is cleared on every save');
+});
+
+test('an orphaned script is told to refresh rather than shown a Chrome error', async () => {
+  const orphaned = { runtime: {}, storage: { sync: { get: async () => ({}), set: async () => {} } } };
+  const expected = i18n.t('notify.contextInvalidated');
+
+  await withChrome(orphaned, async () => {
+    await assert.rejects(() => settings.load(), { message: expected });
+    await assert.rejects(() => settings.save(settings.fromStored({})), { message: expected });
+  });
+});
+
+test('a storage call that fails mid-flight is reported the same way', async () => {
+  const dying = liveChrome();
+  dying.storage.sync.set = async () => {
+    throw new Error('Extension context invalidated.');
+  };
+
+  await withChrome(dying, async () => {
+    await assert.rejects(
+      () => settings.save(settings.fromStored({})),
+      { message: i18n.t('notify.contextInvalidated') }
+    );
+  });
+});
+
+test('a genuine storage failure keeps its own message', async () => {
+  const full = liveChrome();
+  full.storage.sync.set = async () => {
+    throw new Error('QUOTA_BYTES_PER_ITEM quota exceeded');
+  };
+
+  await withChrome(full, async () => {
+    await assert.rejects(
+      () => settings.save(settings.fromStored({})),
+      { message: 'QUOTA_BYTES_PER_ITEM quota exceeded' },
+      'only the orphaned-context failure is rewritten'
+    );
+  });
+});

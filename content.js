@@ -13,10 +13,10 @@ const t = (key, params) => I18n.t(key, params);
  * or updating the extension orphans the copy already injected into an open
  * tab: `chrome.runtime.id` goes undefined and every call throws "Extension
  * context invalidated". The tab has to be reloaded to get a fresh script.
+ *
+ * Shared with lib/settings.js so storage and messaging report it identically.
  */
-const extensionAlive = () => Boolean(chrome.runtime && chrome.runtime.id);
-
-const CONTEXT_LOST = /Extension context invalidated|Receiving end does not exist|message port closed/i;
+const extensionAlive = () => AISettings.extensionAlive();
 
 /**
  * Talks to the background worker, turning the orphaned-script failure into
@@ -28,7 +28,7 @@ async function sendToBackground(message) {
   try {
     return await chrome.runtime.sendMessage(message);
   } catch (error) {
-    if (CONTEXT_LOST.test((error && error.message) || '')) {
+    if (AISettings.isContextLost(error)) {
       throw new Error(t('notify.contextInvalidated'));
     }
     throw error;
@@ -46,15 +46,21 @@ class WhatsAppAI {
   }
 
   async init() {
-    // Which provider, which key, which model - see lib/settings.js
-    this.settings = await AISettings.load();
+    try {
+      // Which provider, which key, which model - see lib/settings.js
+      this.settings = await AISettings.load();
+
+      // A 1.2.x install stored a bare `geminiApiKey`; write it back in the new
+      // per-provider layout so the old key is only read once.
+      if (this.settings.migrated) await AISettings.save(this.settings);
+    } catch (error) {
+      // Unreachable storage is no reason to leave the tab without a menu: keep
+      // the defaults set in the constructor and let the first action say why.
+      console.error('WhatsApp AI: could not read settings -', error.message);
+    }
 
     // Before any string is built: setupUI() below renders the menu.
     I18n.setLocale(this.settings.uiLanguage);
-
-    // A 1.2.x install stored a bare `geminiApiKey`; write it back in the new
-    // per-provider layout so the old key is only read once.
-    if (this.settings.migrated) await AISettings.save(this.settings);
 
     // Initialize chat tracking
     this.initializeChatTracking();
@@ -111,6 +117,10 @@ class WhatsAppAI {
   }
 
   async loadCachedMessages() {
+    // Orphaned by an extension reload: the cache is a convenience, and the
+    // user has already been told to refresh, so drop it rather than log.
+    if (!extensionAlive()) return;
+
     try {
       const cacheKey = `whatsapp_messages_${this.chatId}`;
       const result = await chrome.storage.local.get([cacheKey]);
@@ -126,11 +136,14 @@ class WhatsAppAI {
         }, 1000);
       }
     } catch (error) {
+      if (AISettings.isContextLost(error)) return;
       console.error('Error loading cached messages:', error);
     }
   }
 
   async saveCachedMessages() {
+    if (!extensionAlive()) return;
+
     try {
       const cacheKey = `whatsapp_messages_${this.chatId}`;
       const dataToStore = Array.from(this.messageCache.entries());
@@ -141,6 +154,7 @@ class WhatsAppAI {
       
       console.log(`Saved ${this.messageCache.size} messages to cache`);
     } catch (error) {
+      if (AISettings.isContextLost(error)) return;
       console.error('Error saving cached messages:', error);
     }
   }
@@ -1270,7 +1284,7 @@ Your response:`;
      * "apply on save" language picker is the one setting where you cannot read
      * the confirmation you are being asked to trust.
      */
-    uiLanguageSelect.addEventListener('change', async () => {
+    uiLanguageSelect.addEventListener('change', this.guarded(async () => {
       captureCurrentProvider();
       draft.uiLanguage = uiLanguageSelect.value;
       draft.replyLanguage = replyLanguageSelect.value;
@@ -1286,7 +1300,7 @@ Your response:`;
       if (fab) fab.remove();
       this.setupUI();
       this.openSettings();
-    });
+    }));
 
     replyLanguageSelect.addEventListener('change', () => {
       draft.replyLanguage = replyLanguageSelect.value;
@@ -1326,7 +1340,7 @@ Your response:`;
       baseUrl: LLMProviders.resolveBaseUrl(draft.provider, baseUrlInput.value)
     });
 
-    modal.querySelector('#refresh-models').addEventListener('click', async () => {
+    modal.querySelector('#refresh-models').addEventListener('click', this.guarded(async () => {
       const config = draftConfig();
 
       if (!config.baseUrl) {
@@ -1354,9 +1368,9 @@ Your response:`;
 
       modelOptions.innerHTML = models.map((model) => `<option value="${model}"></option>`).join('');
       this.showNotification(t('notify.modelsLoaded', { count: models.length }), 'success');
-    });
+    }));
 
-    modal.querySelector('#test-api').addEventListener('click', async () => {
+    modal.querySelector('#test-api').addEventListener('click', this.guarded(async () => {
       const config = draftConfig();
       const provider = LLMProviders.get(config.provider);
 
@@ -1399,9 +1413,9 @@ Your response:`;
       } else {
         this.showNotification((reply && reply.error) || t('notify.testFailed'), 'error');
       }
-    });
+    }));
 
-    modal.querySelector('#save-settings').addEventListener('click', async () => {
+    modal.querySelector('#save-settings').addEventListener('click', this.guarded(async () => {
       captureCurrentProvider();
 
       const keyCheck = LLMProviders.validateKey(draft.provider, draft.apiKeys[draft.provider]);
@@ -1429,7 +1443,24 @@ Your response:`;
       }
 
       document.body.removeChild(modal);
-    });
+    }));
+  }
+
+  /**
+   * Wraps an async event handler so a failure surfaces as a notification
+   * instead of an unhandled rejection in the page console. Chiefly for the
+   * orphaned-script error: reloading the extension leaves the dialog on screen
+   * with every button dead, and silence there looks like the extension broke.
+   */
+  guarded(handler) {
+    return async (...args) => {
+      try {
+        await handler(...args);
+      } catch (error) {
+        console.error('WhatsApp AI:', error);
+        this.showNotification(error.message || t('notify.generateFailed'), 'error');
+      }
+    };
   }
 
   showNotification(message, type = 'info') {
