@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   down `gemini-2.0-flash` - until now the extension's default - on 1 June 2026.
   The default is `gemini-3.5-flash`, Google's own migration target for it, and
   the model list offers the current 3.x and 2.5 line.
+- "Extension context invalidated" no longer reaches the user. Reloading or
+  updating the extension orphans the content script already injected into an
+  open tab, and every button then failed with Chrome's raw wording. The tab is
+  now told what happened and asked to refresh.
 - An install that had explicitly pinned a withdrawn model is moved to its
   replacement on load, rather than 404ing on every request until the user
   happens to open the model picker. Providers now declare their retirements in

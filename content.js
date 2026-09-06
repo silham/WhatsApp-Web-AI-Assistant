@@ -8,6 +8,33 @@ if (window.whatsappAILoaded) {
 /** Shorthand for the interface strings - see lib/i18n.js. */
 const t = (key, params) => I18n.t(key, params);
 
+/**
+ * True while this content script still belongs to a live extension. Reloading
+ * or updating the extension orphans the copy already injected into an open
+ * tab: `chrome.runtime.id` goes undefined and every call throws "Extension
+ * context invalidated". The tab has to be reloaded to get a fresh script.
+ */
+const extensionAlive = () => Boolean(chrome.runtime && chrome.runtime.id);
+
+const CONTEXT_LOST = /Extension context invalidated|Receiving end does not exist|message port closed/i;
+
+/**
+ * Talks to the background worker, turning the orphaned-script failure into
+ * something the user can act on rather than a raw Chrome error.
+ */
+async function sendToBackground(message) {
+  if (!extensionAlive()) throw new Error(t('notify.contextInvalidated'));
+
+  try {
+    return await chrome.runtime.sendMessage(message);
+  } catch (error) {
+    if (CONTEXT_LOST.test((error && error.message) || '')) {
+      throw new Error(t('notify.contextInvalidated'));
+    }
+    throw error;
+  }
+}
+
 class WhatsAppAI {
   constructor() {
     this.messages = [];
@@ -928,7 +955,7 @@ class WhatsAppAI {
       (provider.origins || []).some((origin) => origin.startsWith('https://'));
     if (isDefaultHost) return true;
 
-    const reply = await chrome.runtime.sendMessage({
+    const reply = await sendToBackground({
       action: 'checkHostPermission',
       data: { baseUrl: config.baseUrl }
     });
@@ -956,7 +983,7 @@ Based on the conversation context above, generate a natural and appropriate resp
 
 Your response:`;
 
-    const reply = await chrome.runtime.sendMessage({
+    const reply = await sendToBackground({
       action: 'generateResponse',
       data: {
         provider: config.provider,
@@ -968,7 +995,7 @@ Your response:`;
       }
     });
 
-    if (!reply) throw new Error('The extension background worker did not respond. Try reloading the page.');
+    if (!reply) throw new Error(t('notify.noBackgroundReply'));
     if (!reply.ok) throw new Error(reply.error);
 
     return reply.text;
@@ -1309,7 +1336,7 @@ Your response:`;
 
       this.showNotification(t('notify.loadingModels'), 'info');
 
-      const reply = await chrome.runtime.sendMessage({
+      const reply = await sendToBackground({
         action: 'listModels',
         data: { provider: config.provider, apiKey: config.apiKey, baseUrl: config.baseUrl }
       });
@@ -1354,7 +1381,7 @@ Your response:`;
 
       this.showNotification(t('notify.testing', { provider: provider.label }), 'info');
 
-      const reply = await chrome.runtime.sendMessage({
+      const reply = await sendToBackground({
         action: 'generateResponse',
         data: {
           provider: config.provider,
