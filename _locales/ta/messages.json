@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "WhatsApp Web AI உதவியாளர்",
+    "description": "Extension name, shown in chrome://extensions and the Web Store."
+  },
+  "extDescription": {
+    "message": "WhatsApp உரையாடல்களை ஏற்றுமதி செய்து, நீங்கள் விரும்பும் AI வழங்குநரைக் கொண்டு பதில்களை வரையுங்கள்",
+    "description": "Extension description, shown in chrome://extensions and the Web Store."
+  },
+  "actionTitle": {
+    "message": "WhatsApp AI உதவியாளர்",
+    "description": "Tooltip on the toolbar button."
+  }
+}

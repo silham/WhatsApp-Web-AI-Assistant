@@ -3,7 +3,7 @@
 const globals = require('globals');
 
 /** Files that make up the shipped extension, as listed in manifest.json. */
-const EXTENSION_FILES = ['content.js', 'background.js', 'popup.js', 'lib/**/*.js'];
+const EXTENSION_FILES = ['content.js', 'background.js', 'popup.js', 'help.js', 'lib/**/*.js'];
 
 module.exports = [
   {
@@ -43,6 +43,7 @@ module.exports = [
         WhatsAppTimestamps: 'readonly',
         LLMProviders: 'readonly',
         AISettings: 'readonly',
+        I18n: 'readonly',
         // background.js runs as a service worker
         importScripts: 'readonly'
       }

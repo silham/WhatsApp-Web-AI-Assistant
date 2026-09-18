@@ -153,32 +153,33 @@
 <body>
   <div class="header">
     <div class="logo">🤖</div>
-    <h1>WhatsApp AI Assistant</h1>
-    <div class="subtitle">Export & Generate AI Responses</div>
+    <h1 data-i18n="app.name">WhatsApp AI Assistant</h1>
+    <div class="subtitle" data-i18n="popup.subtitle">Export &amp; Generate AI Responses</div>
   </div>
   
   <ul class="feature-list">
-    <li>Export full conversations</li>
-    <li>Generate AI responses with any provider</li>
-    <li>Auto-insert responses</li>
-    <li>Copy to clipboard</li>
+    <li data-i18n="popup.feature.export">Export full conversations</li>
+    <li data-i18n="popup.feature.generate">Generate AI responses with any provider</li>
+    <li data-i18n="popup.feature.insert">Auto-insert responses</li>
+    <li data-i18n="popup.feature.copy">Copy to clipboard</li>
   </ul>
   
   <div id="providerLine" class="provider-line"></div>
 
   <div id="permissionNotice" class="permission-notice">
     <span id="permissionText"></span>
-    <button id="grantPermission" type="button">Grant access</button>
+    <button id="grantPermission" type="button" data-i18n="popup.grantAccess">Grant access</button>
   </div>
 
   <div class="action-buttons">
-    <button id="openWhatsApp" class="primary-btn">Open WhatsApp Web</button>
-    <button id="openSettings" class="secondary-btn">Configure Settings</button>
-    <button id="viewHelp" class="secondary-btn">View Help</button>
+    <button id="openWhatsApp" class="primary-btn" data-i18n="popup.openWhatsApp">Open WhatsApp Web</button>
+    <button id="openSettings" class="secondary-btn" data-i18n="popup.configureSettings">Configure Settings</button>
+    <button id="viewHelp" class="secondary-btn" data-i18n="popup.viewHelp">View Help</button>
   </div>
   
   <div id="status" class="status" style="display: none;"></div>
 
+  <script src="lib/i18n.js"></script>
   <script src="lib/providers.js"></script>
   <script src="lib/settings.js"></script>
   <script src="popup.js"></script>

@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Tamil. The whole interface - the floating menu, every dialog, every
+  notification, the popup and the help page - is available in Tamil, chosen
+  with the new "Interface Language" setting. Switching redraws the interface
+  immediately; there is nothing to reload.
+- A "Reply Language" setting that pins the language the AI drafts in, separate
+  from the interface language, with thirteen options and an "Auto" default that
+  follows the conversation. The instruction is appended to the system prompt
+  last, so it takes precedence over anything in the custom instructions.
+- `lib/i18n.js` holds every interface string and the locale lookup, and is unit
+  tested - including a check that each locale defines exactly the same keys,
+  with the same placeholders, as English.
+- The help page carries its own language picker, which writes the choice back
+  to settings.
+
+### Fixed
+
+- Generation no longer fails with "Endpoint or model not found". Google shut
+  down `gemini-2.0-flash` - until now the extension's default - on 1 June 2026.
+  The default is `gemini-3.5-flash`, Google's own migration target for it, and
+  the model list offers the current 3.x and 2.5 line.
+- "Extension context invalidated" no longer reaches the user. Reloading or
+  updating the extension orphans the content script already injected into an
+  open tab, and every button then failed with Chrome's raw wording. The tab is
+  now told what happened and asked to refresh.
+- An install that had explicitly pinned a withdrawn model is moved to its
+  replacement on load, rather than 404ing on every request until the user
+  happens to open the model picker. Providers now declare their retirements in
+  `retiredModels`, so the next one is a data change.
+
+### Changed
+
+- The extension's name and description in `chrome://extensions` and the Web
+  Store now come from `_locales/`, so they are localised too. Only those
+  manifest fields use `chrome.i18n` - the interface itself does not, because a
+  `chrome.i18n` locale follows the browser's UI language and cannot be changed
+  from inside the extension.
+
 ## [1.3.0] - 2026-09-01
 
 ### Added

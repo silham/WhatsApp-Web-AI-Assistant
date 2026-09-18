@@ -5,6 +5,36 @@ if (window.whatsappAILoaded) {
 } else {
   window.whatsappAILoaded = true;
 
+/** Shorthand for the interface strings - see lib/i18n.js. */
+const t = (key, params) => I18n.t(key, params);
+
+/**
+ * True while this content script still belongs to a live extension. Reloading
+ * or updating the extension orphans the copy already injected into an open
+ * tab: `chrome.runtime.id` goes undefined and every call throws "Extension
+ * context invalidated". The tab has to be reloaded to get a fresh script.
+ *
+ * Shared with lib/settings.js so storage and messaging report it identically.
+ */
+const extensionAlive = () => AISettings.extensionAlive();
+
+/**
+ * Talks to the background worker, turning the orphaned-script failure into
+ * something the user can act on rather than a raw Chrome error.
+ */
+async function sendToBackground(message) {
+  if (!extensionAlive()) throw new Error(t('notify.contextInvalidated'));
+
+  try {
+    return await chrome.runtime.sendMessage(message);
+  } catch (error) {
+    if (AISettings.isContextLost(error)) {
+      throw new Error(t('notify.contextInvalidated'));
+    }
+    throw error;
+  }
+}
+
 class WhatsAppAI {
   constructor() {
     this.messages = [];
@@ -16,12 +46,21 @@ class WhatsAppAI {
   }
 
   async init() {
-    // Which provider, which key, which model - see lib/settings.js
-    this.settings = await AISettings.load();
+    try {
+      // Which provider, which key, which model - see lib/settings.js
+      this.settings = await AISettings.load();
 
-    // A 1.2.x install stored a bare `geminiApiKey`; write it back in the new
-    // per-provider layout so the old key is only read once.
-    if (this.settings.migrated) await AISettings.save(this.settings);
+      // A 1.2.x install stored a bare `geminiApiKey`; write it back in the new
+      // per-provider layout so the old key is only read once.
+      if (this.settings.migrated) await AISettings.save(this.settings);
+    } catch (error) {
+      // Unreachable storage is no reason to leave the tab without a menu: keep
+      // the defaults set in the constructor and let the first action say why.
+      console.error('WhatsApp AI: could not read settings -', error.message);
+    }
+
+    // Before any string is built: setupUI() below renders the menu.
+    I18n.setLocale(this.settings.uiLanguage);
 
     // Initialize chat tracking
     this.initializeChatTracking();
@@ -37,6 +76,19 @@ class WhatsAppAI {
 
   get systemInstructions() {
     return this.settings.systemInstructions;
+  }
+
+  /**
+   * The system prompt actually sent to the provider: the user's own
+   * instructions, plus a line pinning the output language when they have
+   * chosen one. Appended last so it outranks anything in the custom
+   * instructions that contradicts it.
+   */
+  get effectiveSystemPrompt() {
+    const base = this.systemInstructions || AISettings.DEFAULT_SYSTEM_INSTRUCTIONS;
+    const directive = I18n.replyLanguageDirective(this.settings.replyLanguage);
+
+    return directive ? `${base}\n\n${directive}` : base;
   }
 
   initializeChatTracking() {
@@ -65,6 +117,10 @@ class WhatsAppAI {
   }
 
   async loadCachedMessages() {
+    // Orphaned by an extension reload: the cache is a convenience, and the
+    // user has already been told to refresh, so drop it rather than log.
+    if (!extensionAlive()) return;
+
     try {
       const cacheKey = `whatsapp_messages_${this.chatId}`;
       const result = await chrome.storage.local.get([cacheKey]);
@@ -80,11 +136,14 @@ class WhatsAppAI {
         }, 1000);
       }
     } catch (error) {
+      if (AISettings.isContextLost(error)) return;
       console.error('Error loading cached messages:', error);
     }
   }
 
   async saveCachedMessages() {
+    if (!extensionAlive()) return;
+
     try {
       const cacheKey = `whatsapp_messages_${this.chatId}`;
       const dataToStore = Array.from(this.messageCache.entries());
@@ -95,6 +154,7 @@ class WhatsAppAI {
       
       console.log(`Saved ${this.messageCache.size} messages to cache`);
     } catch (error) {
+      if (AISettings.isContextLost(error)) return;
       console.error('Error saving cached messages:', error);
     }
   }
@@ -167,23 +227,25 @@ class WhatsAppAI {
       
       // Create floating action button with cache status
       const cacheSize = this.messageCache.size;
-      const cacheStatus = cacheSize > 0 ? ` (${cacheSize} cached)` : '';
-      
+      const fabTitle = cacheSize > 0
+        ? t('fab.titleCached', { count: cacheSize })
+        : t('fab.title');
+
       const fab = document.createElement('div');
       fab.id = 'whatsapp-ai-fab';
       fab.innerHTML = `
-        <div class="ai-fab-button" title="AI Assistant${cacheStatus}">
+        <div class="ai-fab-button" title="${fabTitle}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
           </svg>
           ${cacheSize > 0 ? `<div class="cache-indicator">${cacheSize}</div>` : ''}
         </div>
         <div class="ai-menu" id="ai-menu" style="display: none;">
-          <button id="export-conversation">📤 Export Conversation</button>
-          <button id="generate-response">🤖 Generate AI Response</button>
-          <button id="load-full-history">📜 Load Full History</button>
-          <button id="clear-cache">🗑️ Clear Cache</button>
-          <button id="settings">⚙️ Settings</button>
+          <button id="export-conversation">${t('menu.export')}</button>
+          <button id="generate-response">${t('menu.generate')}</button>
+          <button id="load-full-history">${t('menu.history')}</button>
+          <button id="clear-cache">${t('menu.clearCache')}</button>
+          <button id="settings">${t('menu.settings')}</button>
         </div>
       `;    document.body.appendChild(fab);
 
@@ -204,7 +266,7 @@ class WhatsAppAI {
       if (settingsBtn) settingsBtn.addEventListener('click', this.openSettings.bind(this));
       
       console.log('WhatsApp AI: UI setup complete');
-      this.showNotification('WhatsApp AI Assistant activated!', 'success');
+      this.showNotification(t('notify.activated'), 'success');
     } catch (error) {
       console.error('WhatsApp AI: Error setting up event listeners:', error);
     }
@@ -457,7 +519,7 @@ class WhatsAppAI {
     const maxNoChangeAttempts = 3;
     
     console.log('Starting comprehensive message loading...');
-    this.showNotification('Loading full conversation history...', 'info');
+    this.showNotification(t('notify.loadingHistory'), 'info');
 
     // Start from current position and work our way up
     const initialScrollTop = chatContainer.scrollTop;
@@ -493,7 +555,7 @@ class WhatsAppAI {
       
       if (newMessagesLoaded > 0) {
         consecutiveNoChangeAttempts = 0; // Reset counter when we find new messages
-        this.showNotification(`Loading... ${currentCacheSize} messages found`, 'info');
+        this.showNotification(t('notify.loadingProgress', { count: currentCacheSize }), 'info');
       } else {
         consecutiveNoChangeAttempts++;
         console.log(`No new messages found. Consecutive no-change attempts: ${consecutiveNoChangeAttempts}`);
@@ -522,7 +584,7 @@ class WhatsAppAI {
     
     const finalCount = this.messageCache.size;
     console.log(`Finished comprehensive loading. Total messages cached: ${finalCount}`);
-    this.showNotification(`Loaded ${finalCount} messages from conversation`, 'success');
+    this.showNotification(t('notify.loadedMessages', { count: finalCount }), 'success');
     
     // Update the UI to show new cache count
     this.updateCacheIndicator();
@@ -669,14 +731,14 @@ class WhatsAppAI {
 
   async loadFullHistory() {
     try {
-      this.showNotification('Loading full conversation history...', 'info');
+      this.showNotification(t('notify.loadingHistory'), 'info');
       await this.loadAllMessages();
       
       const totalMessages = this.messageCache.size;
-      this.showNotification(`Loaded ${totalMessages} messages. Cache updated with full conversation history.`, 'success');
+      this.showNotification(t('notify.historyLoaded', { count: totalMessages }), 'success');
     } catch (error) {
       console.error('Error loading full history:', error);
-      this.showNotification('Failed to load full conversation history', 'error');
+      this.showNotification(t('notify.historyFailed'), 'error');
     }
   }
 
@@ -686,10 +748,10 @@ class WhatsAppAI {
       const cacheKey = `whatsapp_messages_${this.chatId}`;
       await chrome.storage.local.remove([cacheKey]);
       this.updateCacheIndicator(); // Update UI
-      this.showNotification('Message cache cleared', 'success');
+      this.showNotification(t('notify.cacheCleared'), 'success');
     } catch (error) {
       console.error('Error clearing cache:', error);
-      this.showNotification('Failed to clear cache', 'error');
+      this.showNotification(t('notify.cacheClearFailed'), 'error');
     }
   }
 
@@ -749,7 +811,7 @@ class WhatsAppAI {
 
   async exportConversation() {
     try {
-      this.showNotification('Collecting conversation messages...', 'info');
+      this.showNotification(t('notify.collecting'), 'info');
       
       const messages = await this.extractMessages(true); // Pass true for full export
       const formattedConversation = this.formatConversationForAI(messages, true); // Pass true for export format
@@ -765,10 +827,10 @@ class WhatsAppAI {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      this.showNotification(`Conversation exported successfully! (${messages.length} messages)`, 'success');
+      this.showNotification(t('notify.exported', { count: messages.length }), 'success');
     } catch (error) {
       console.error('Export error:', error);
-      this.showNotification('Failed to export conversation', 'error');
+      this.showNotification(t('notify.exportFailed'), 'error');
     }
   }
 
@@ -780,12 +842,12 @@ class WhatsAppAI {
       modal.id = 'instructions-modal';
       modal.innerHTML = `
         <div class="ai-modal-content">
-          <h3>Instructions for Next Message</h3>
-          <p>Provide specific instructions for how the AI should respond to this conversation (optional):</p>
-          <textarea id="message-instructions" placeholder="Example: Be more formal, focus on technical details, be encouraging, etc." rows="4"></textarea>
+          <h3>${t('instructions.title')}</h3>
+          <p>${t('instructions.body')}</p>
+          <textarea id="message-instructions" placeholder="${t('instructions.placeholder')}" rows="4"></textarea>
           <div class="ai-modal-buttons">
-            <button id="skip-instructions" class="ai-button secondary">Skip</button>
-            <button id="apply-instructions" class="ai-button primary">Apply Instructions</button>
+            <button id="skip-instructions" class="ai-button secondary">${t('instructions.skip')}</button>
+            <button id="apply-instructions" class="ai-button primary">${t('instructions.apply')}</button>
           </div>
         </div>
       `;
@@ -837,13 +899,13 @@ class WhatsAppAI {
 
     const keyCheck = LLMProviders.validateKey(config.provider, config.apiKey);
     if (!keyCheck.valid) {
-      this.showNotification(`${keyCheck.message}. Opening settings...`, 'error');
+      this.showNotification(t('notify.openingSettings', { message: keyCheck.message }), 'error');
       this.openSettings();
       return;
     }
 
     if (!config.baseUrl) {
-      this.showNotification(`${provider.label} needs a base URL. Opening settings...`, 'error');
+      this.showNotification(t('notify.needsBaseUrl', { provider: provider.label }), 'error');
       this.openSettings();
       return;
     }
@@ -852,7 +914,7 @@ class WhatsAppAI {
     // permission the user grants from the extension popup.
     if (!(await this.hasHostPermission(config))) {
       this.showNotification(
-        `Chrome is blocking ${this.hostLabel(config.baseUrl)}. Open the extension popup and grant access to it.`,
+        t('notify.blockedHost', { host: this.hostLabel(config.baseUrl) }),
         'error'
       );
       return;
@@ -862,16 +924,16 @@ class WhatsAppAI {
       // Show instructions dialog first
       const messageInstructions = await this.showInstructionsDialog();
 
-      this.showNotification('Analyzing conversation...', 'info');
+      this.showNotification(t('notify.analyzing'), 'info');
 
       const messages = await this.extractMessages();
 
       if (messages.length === 0) {
-        this.showNotification('No messages found to analyze', 'warning');
+        this.showNotification(t('notify.noMessages'), 'warning');
         return;
       }
 
-      this.showNotification(`Generating with ${provider.label}...`, 'info');
+      this.showNotification(t('notify.generatingWith', { provider: provider.label }), 'info');
 
       const conversationText = this.formatConversationForAI(messages, messageInstructions);
       console.log('Conversation to analyze:', conversationText);
@@ -880,11 +942,11 @@ class WhatsAppAI {
 
       if (response) {
         this.displayAIResponse(response);
-        this.showNotification('AI response generated successfully!', 'success');
+        this.showNotification(t('notify.generated'), 'success');
       }
     } catch (error) {
       console.error('AI generation error:', error);
-      this.showNotification(error.message || 'Failed to generate AI response', 'error');
+      this.showNotification(error.message || t('notify.generateFailed'), 'error');
     }
   }
 
@@ -907,7 +969,7 @@ class WhatsAppAI {
       (provider.origins || []).some((origin) => origin.startsWith('https://'));
     if (isDefaultHost) return true;
 
-    const reply = await chrome.runtime.sendMessage({
+    const reply = await sendToBackground({
       action: 'checkHostPermission',
       data: { baseUrl: config.baseUrl }
     });
@@ -935,19 +997,19 @@ Based on the conversation context above, generate a natural and appropriate resp
 
 Your response:`;
 
-    const reply = await chrome.runtime.sendMessage({
+    const reply = await sendToBackground({
       action: 'generateResponse',
       data: {
         provider: config.provider,
         apiKey: config.apiKey,
         model: config.model,
         baseUrl: config.baseUrl,
-        systemPrompt: this.systemInstructions || AISettings.DEFAULT_SYSTEM_INSTRUCTIONS,
+        systemPrompt: this.effectiveSystemPrompt,
         userPrompt
       }
     });
 
-    if (!reply) throw new Error('The extension background worker did not respond. Try reloading the page.');
+    if (!reply) throw new Error(t('notify.noBackgroundReply'));
     if (!reply.ok) throw new Error(reply.error);
 
     return reply.text;
@@ -960,14 +1022,14 @@ Your response:`;
     modal.innerHTML = `
       <div class="ai-modal-content">
         <div class="ai-modal-header">
-          <h3>AI Generated Response</h3>
+          <h3>${t('response.title')}</h3>
           <button class="ai-modal-close">&times;</button>
         </div>
         <div class="ai-modal-body">
           <textarea id="ai-response-text" readonly></textarea>
           <div class="ai-modal-actions">
-            <button id="copy-response">Copy to Clipboard</button>
-            <button id="insert-response">Insert into Chat</button>
+            <button id="copy-response">${t('response.copy')}</button>
+            <button id="insert-response">${t('response.insert')}</button>
           </div>
         </div>
       </div>
@@ -987,7 +1049,7 @@ Your response:`;
     
     document.getElementById('copy-response').addEventListener('click', () => {
       navigator.clipboard.writeText(response);
-      this.showNotification('Response copied to clipboard!', 'success');
+      this.showNotification(t('notify.copied'), 'success');
     });
     
     document.getElementById('insert-response').addEventListener('click', () => {
@@ -1019,9 +1081,9 @@ Your response:`;
         messageInput.dispatchEvent(event);
       }
       
-      this.showNotification('Response inserted into chat input', 'success');
+      this.showNotification(t('notify.inserted'), 'success');
     } else {
-      this.showNotification('Could not find message input field', 'error');
+      this.showNotification(t('notify.noInput'), 'error');
     }
   }
 
@@ -1033,74 +1095,99 @@ Your response:`;
       .map((provider) => `<option value="${provider.id}">${provider.label}</option>`)
       .join('');
 
+    // Each interface language names itself, so someone who cannot read the
+    // language currently on screen can still find their own in the list.
+    const uiLanguageOptions = I18n.LOCALES
+      .map((locale) => `<option value="${locale.code}">${locale.native}</option>`)
+      .join('');
+
+    const replyLanguageOptions = I18n.REPLY_LANGUAGES
+      .map((lang) => {
+        const label = lang.code === 'auto' ? t('settings.replyLanguageAuto') : lang.native;
+        return `<option value="${lang.code}">${label}</option>`;
+      })
+      .join('');
+
     modal.innerHTML = `
       <div class="ai-modal-content">
         <div class="ai-modal-header">
-          <h3>AI Assistant Settings</h3>
+          <h3>${t('settings.title')}</h3>
           <button class="ai-modal-close">&times;</button>
         </div>
         <div class="ai-modal-body">
           <div class="setting-group">
-            <label for="ai-provider">AI Provider:</label>
+            <label for="ui-language">${t('settings.uiLanguage')}</label>
+            <select id="ui-language">${uiLanguageOptions}</select>
+            <small>${t('settings.uiLanguageHint')}</small>
+          </div>
+
+          <div class="setting-group">
+            <label for="reply-language">${t('settings.replyLanguage')}</label>
+            <select id="reply-language">${replyLanguageOptions}</select>
+            <small>${t('settings.replyLanguageHint')}</small>
+          </div>
+
+          <div class="setting-group">
+            <label for="ai-provider">${t('settings.provider')}</label>
             <select id="ai-provider">${providerOptions}</select>
             <small id="provider-hint"></small>
           </div>
 
           <div class="setting-group">
-            <label for="ai-api-key">API Key:</label>
+            <label for="ai-api-key">${t('settings.apiKey')}</label>
             <input type="password" id="ai-api-key" autocomplete="off">
             <small id="api-key-hint"></small>
           </div>
 
           <div class="setting-group">
-            <label for="ai-model">Model:</label>
+            <label for="ai-model">${t('settings.model')}</label>
             <input type="text" id="ai-model" list="ai-model-options" autocomplete="off">
             <datalist id="ai-model-options"></datalist>
             <small>
-              Leave blank to use the provider's default.
-              <button type="button" id="refresh-models" class="ai-inline-btn">Load models from provider</button>
+              ${t('settings.modelHint')}
+              <button type="button" id="refresh-models" class="ai-inline-btn">${t('settings.loadModels')}</button>
             </small>
           </div>
 
           <div class="setting-group" id="base-url-group">
-            <label for="ai-base-url">API Base URL:</label>
+            <label for="ai-base-url">${t('settings.baseUrl')}</label>
             <input type="text" id="ai-base-url" autocomplete="off">
             <small id="base-url-hint"></small>
           </div>
 
           <div class="setting-group">
-            <label for="system-instructions">System Instructions:</label>
-            <textarea id="system-instructions" placeholder="Enter custom instructions for the AI..." rows="6"></textarea>
+            <label for="system-instructions">${t('settings.systemInstructions')}</label>
+            <textarea id="system-instructions" placeholder="${t('settings.systemInstructionsPlaceholder')}" rows="6"></textarea>
             <small>
-              <strong>Instructions for the AI:</strong> Define how the AI should behave, its personality, tone, or specific guidelines.<br>
-              <strong>Examples:</strong><br>
-              • "Always respond in a friendly and professional manner"<br>
-              • "Keep responses brief and to the point"<br>
-              • "Act as a customer support agent for my business"<br>
-              • "Respond in Spanish and be very enthusiastic"
+              <strong>${t('settings.instructionsLead')}</strong> ${t('settings.instructionsBody')}<br>
+              <strong>${t('settings.examplesLead')}</strong><br>
+              • "${t('settings.example1')}"<br>
+              • "${t('settings.example2')}"<br>
+              • "${t('settings.example3')}"<br>
+              • "${t('settings.example4')}"
             </small>
           </div>
 
           <div class="setting-group">
             <details>
-              <summary style="cursor: pointer; margin-bottom: 10px; font-weight: 500;">🎯 Preset Instructions (Click to expand)</summary>
+              <summary style="cursor: pointer; margin-bottom: 10px; font-weight: 500;">${t('settings.presetsSummary')}</summary>
               <div class="preset-buttons">
-                <button type="button" class="preset-btn" data-preset="professional">👔 Professional</button>
-                <button type="button" class="preset-btn" data-preset="friendly">😊 Friendly</button>
-                <button type="button" class="preset-btn" data-preset="brief">⚡ Brief</button>
-                <button type="button" class="preset-btn" data-preset="creative">🎨 Creative</button>
-                <button type="button" class="preset-btn" data-preset="support">🛠️ Support Agent</button>
-                <button type="button" class="preset-btn" data-preset="translator">🌐 Translator</button>
+                <button type="button" class="preset-btn" data-preset="professional">${t('settings.preset.professional')}</button>
+                <button type="button" class="preset-btn" data-preset="friendly">${t('settings.preset.friendly')}</button>
+                <button type="button" class="preset-btn" data-preset="brief">${t('settings.preset.brief')}</button>
+                <button type="button" class="preset-btn" data-preset="creative">${t('settings.preset.creative')}</button>
+                <button type="button" class="preset-btn" data-preset="support">${t('settings.preset.support')}</button>
+                <button type="button" class="preset-btn" data-preset="translator">${t('settings.preset.translator')}</button>
               </div>
             </details>
           </div>
 
           <div class="setting-group">
-            <label>Test API Connection:</label>
-            <button id="test-api" type="button" style="padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer;">Test Connection</button>
+            <label>${t('settings.testLabel')}</label>
+            <button id="test-api" type="button" style="padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer;">${t('settings.test')}</button>
           </div>
           <div class="ai-modal-actions">
-            <button id="save-settings">Save Settings</button>
+            <button id="save-settings">${t('settings.save')}</button>
           </div>
         </div>
       </div>
@@ -1108,7 +1195,10 @@ Your response:`;
 
     document.body.appendChild(modal);
 
-    // Preset instructions
+    // Preset instructions. Deliberately left in English whatever the interface
+    // language: these are model instructions, not interface text, and every
+    // provider follows an English system prompt more reliably. What language
+    // the *reply* comes back in is the Reply Language setting's job.
     const presets = {
       professional: "You are a professional AI assistant. Always respond in a formal, respectful, and business-appropriate manner. Use proper grammar and avoid casual language or emojis.",
       friendly: "You are a friendly and warm AI assistant. Use a conversational tone, be approachable, and feel free to use appropriate emojis. Make responses feel personal and caring.",
@@ -1125,6 +1215,8 @@ Your response:`;
     const baseUrlInput = modal.querySelector('#ai-base-url');
     const baseUrlGroup = modal.querySelector('#base-url-group');
     const instructionsInput = modal.querySelector('#system-instructions');
+    const uiLanguageSelect = modal.querySelector('#ui-language');
+    const replyLanguageSelect = modal.querySelector('#reply-language');
 
     // Edits live in a working copy so closing the modal discards them.
     const draft = {
@@ -1132,7 +1224,9 @@ Your response:`;
       apiKeys: Object.assign({}, this.settings.apiKeys),
       models: Object.assign({}, this.settings.models),
       baseUrls: Object.assign({}, this.settings.baseUrls),
-      systemInstructions: this.settings.systemInstructions
+      systemInstructions: this.settings.systemInstructions,
+      uiLanguage: this.settings.uiLanguage,
+      replyLanguage: this.settings.replyLanguage
     };
 
     /** Remembers what is on screen for the provider being switched away from. */
@@ -1147,9 +1241,9 @@ Your response:`;
 
       providerSelect.value = provider.id;
       apiKeyInput.value = draft.apiKeys[provider.id] || '';
-      apiKeyInput.placeholder = provider.keyPlaceholder || 'Your API key';
+      apiKeyInput.placeholder = provider.keyPlaceholder || t('settings.apiKeyPlaceholder');
       modelInput.value = draft.models[provider.id] || '';
-      modelInput.placeholder = provider.defaultModel || 'Model name';
+      modelInput.placeholder = provider.defaultModel || t('settings.modelPlaceholder');
       baseUrlInput.value = draft.baseUrls[provider.id] || '';
       baseUrlInput.placeholder = provider.defaultBaseUrl || 'https://your-endpoint.example/v1';
 
@@ -1162,26 +1256,55 @@ Your response:`;
 
       const hints = [];
       if (provider.hint) hints.push(provider.hint);
-      if (!provider.requiresKey) hints.push('This provider works without a key.');
+      if (!provider.requiresKey) hints.push(t('settings.noKeyNeeded'));
       modal.querySelector('#provider-hint').textContent = hints.join(' ');
 
       const keyHint = modal.querySelector('#api-key-hint');
       if (provider.docsUrl) {
         keyHint.innerHTML =
-          `Create a key at <a href="${provider.docsUrl}" target="_blank" rel="noopener">${provider.docsLabel}</a>` +
-          (provider.keyPrefix ? `, it starts with "${provider.keyPrefix}".` : '.') +
-          '<br>Keys are stored in your browser profile and are only ever sent to the provider you pick.';
+          t('settings.keyDocs', { url: provider.docsUrl, label: provider.docsLabel }) +
+          (provider.keyPrefix ? t('settings.keyPrefix', { prefix: provider.keyPrefix }) : '.') +
+          `<br>${t('settings.keyStorage')}`;
       } else {
-        keyHint.textContent = 'Keys are stored in your browser profile and are only ever sent to the provider you pick.';
+        keyHint.textContent = t('settings.keyStorage');
       }
 
       modal.querySelector('#base-url-hint').textContent = provider.defaultBaseUrl
-        ? `Leave blank for ${provider.defaultBaseUrl}`
-        : 'Point this at any endpoint that serves /chat/completions.';
+        ? t('settings.baseUrlHint', { url: provider.defaultBaseUrl })
+        : t('settings.baseUrlHintCustom');
     };
 
     renderProvider(draft.provider);
     instructionsInput.value = draft.systemInstructions;
+    uiLanguageSelect.value = draft.uiLanguage;
+    replyLanguageSelect.value = draft.replyLanguage;
+
+    /**
+     * Switching the interface language redraws the dialog straight away: an
+     * "apply on save" language picker is the one setting where you cannot read
+     * the confirmation you are being asked to trust.
+     */
+    uiLanguageSelect.addEventListener('change', this.guarded(async () => {
+      captureCurrentProvider();
+      draft.uiLanguage = uiLanguageSelect.value;
+      draft.replyLanguage = replyLanguageSelect.value;
+      draft.systemInstructions = instructionsInput.value.trim() || AISettings.DEFAULT_SYSTEM_INSTRUCTIONS;
+
+      this.settings = draft;
+      await AISettings.save(draft);
+      I18n.setLocale(draft.uiLanguage);
+
+      // The floating menu was built in the old language too.
+      document.body.removeChild(modal);
+      const fab = document.getElementById('whatsapp-ai-fab');
+      if (fab) fab.remove();
+      this.setupUI();
+      this.openSettings();
+    }));
+
+    replyLanguageSelect.addEventListener('change', () => {
+      draft.replyLanguage = replyLanguageSelect.value;
+    });
 
     providerSelect.addEventListener('change', () => {
       const next = providerSelect.value;
@@ -1217,37 +1340,37 @@ Your response:`;
       baseUrl: LLMProviders.resolveBaseUrl(draft.provider, baseUrlInput.value)
     });
 
-    modal.querySelector('#refresh-models').addEventListener('click', async () => {
+    modal.querySelector('#refresh-models').addEventListener('click', this.guarded(async () => {
       const config = draftConfig();
 
       if (!config.baseUrl) {
-        this.showNotification('Enter a base URL first', 'warning');
+        this.showNotification(t('notify.needBaseUrlFirst'), 'warning');
         return;
       }
 
-      this.showNotification('Loading models...', 'info');
+      this.showNotification(t('notify.loadingModels'), 'info');
 
-      const reply = await chrome.runtime.sendMessage({
+      const reply = await sendToBackground({
         action: 'listModels',
         data: { provider: config.provider, apiKey: config.apiKey, baseUrl: config.baseUrl }
       });
 
       if (!reply || !reply.ok) {
-        this.showNotification(`Could not load models: ${(reply && reply.error) || 'no response'}`, 'error');
+        this.showNotification(t('notify.modelsFailed', { error: (reply && reply.error) || t('notify.noResponse') }), 'error');
         return;
       }
 
       const models = (reply.models || []).sort();
       if (models.length === 0) {
-        this.showNotification('The provider listed no models', 'warning');
+        this.showNotification(t('notify.noModels'), 'warning');
         return;
       }
 
       modelOptions.innerHTML = models.map((model) => `<option value="${model}"></option>`).join('');
-      this.showNotification(`Loaded ${models.length} models - click the model box to pick one`, 'success');
-    });
+      this.showNotification(t('notify.modelsLoaded', { count: models.length }), 'success');
+    }));
 
-    modal.querySelector('#test-api').addEventListener('click', async () => {
+    modal.querySelector('#test-api').addEventListener('click', this.guarded(async () => {
       const config = draftConfig();
       const provider = LLMProviders.get(config.provider);
 
@@ -1258,21 +1381,21 @@ Your response:`;
       }
 
       if (!config.baseUrl) {
-        this.showNotification('Enter a base URL first', 'warning');
+        this.showNotification(t('notify.needBaseUrlFirst'), 'warning');
         return;
       }
 
       if (!(await this.hasHostPermission(config))) {
         this.showNotification(
-          `Chrome is blocking ${this.hostLabel(config.baseUrl)}. Open the extension popup to grant access.`,
+          t('notify.blockedHostShort', { host: this.hostLabel(config.baseUrl) }),
           'error'
         );
         return;
       }
 
-      this.showNotification(`Testing ${provider.label}...`, 'info');
+      this.showNotification(t('notify.testing', { provider: provider.label }), 'info');
 
-      const reply = await chrome.runtime.sendMessage({
+      const reply = await sendToBackground({
         action: 'generateResponse',
         data: {
           provider: config.provider,
@@ -1286,13 +1409,13 @@ Your response:`;
       });
 
       if (reply && reply.ok) {
-        this.showNotification(`${provider.label} responded - connection works`, 'success');
+        this.showNotification(t('notify.testOk', { provider: provider.label }), 'success');
       } else {
-        this.showNotification((reply && reply.error) || 'Test failed: no response', 'error');
+        this.showNotification((reply && reply.error) || t('notify.testFailed'), 'error');
       }
-    });
+    }));
 
-    modal.querySelector('#save-settings').addEventListener('click', async () => {
+    modal.querySelector('#save-settings').addEventListener('click', this.guarded(async () => {
       captureCurrentProvider();
 
       const keyCheck = LLMProviders.validateKey(draft.provider, draft.apiKeys[draft.provider]);
@@ -1302,22 +1425,42 @@ Your response:`;
       }
 
       draft.systemInstructions = instructionsInput.value.trim() || AISettings.DEFAULT_SYSTEM_INSTRUCTIONS;
+      draft.uiLanguage = uiLanguageSelect.value;
+      draft.replyLanguage = replyLanguageSelect.value;
 
       this.settings = draft;
       await AISettings.save(draft);
+      I18n.setLocale(draft.uiLanguage);
 
       const config = this.activeConfig;
       if (!(await this.hasHostPermission(config))) {
         this.showNotification(
-          `Saved. Open the extension popup to let Chrome reach ${this.hostLabel(config.baseUrl)}.`,
+          t('notify.savedNeedsPermission', { host: this.hostLabel(config.baseUrl) }),
           'warning'
         );
       } else {
-        this.showNotification('Settings saved successfully!', 'success');
+        this.showNotification(t('notify.saved'), 'success');
       }
 
       document.body.removeChild(modal);
-    });
+    }));
+  }
+
+  /**
+   * Wraps an async event handler so a failure surfaces as a notification
+   * instead of an unhandled rejection in the page console. Chiefly for the
+   * orphaned-script error: reloading the extension leaves the dialog on screen
+   * with every button dead, and silence there looks like the extension broke.
+   */
+  guarded(handler) {
+    return async (...args) => {
+      try {
+        await handler(...args);
+      } catch (error) {
+        console.error('WhatsApp AI:', error);
+        this.showNotification(error.message || t('notify.generateFailed'), 'error');
+      }
+    };
   }
 
   showNotification(message, type = 'info') {

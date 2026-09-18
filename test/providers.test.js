@@ -210,11 +210,49 @@ test('a provider that can list models can also parse the list back', () => {
   assert.deepEqual(
     providers.get('gemini').parseModels({
       models: [
-        { name: 'models/gemini-2.0-flash', supportedGenerationMethods: ['generateContent'] },
+        { name: 'models/gemini-3.5-flash', supportedGenerationMethods: ['generateContent'] },
         { name: 'models/text-embedding-004', supportedGenerationMethods: ['embedContent'] }
       ]
     }),
-    ['gemini-2.0-flash']
+    ['gemini-3.5-flash']
+  );
+});
+
+test('a withdrawn model resolves to its replacement, not to a 404', () => {
+  // Google shut gemini-2.0-flash down on 2026-06-01; it was our old default.
+  assert.equal(providers.resolveModel('gemini', 'gemini-2.0-flash'), 'gemini-3.5-flash');
+  assert.equal(providers.resolveModel('gemini', 'gemini-2.0-flash-lite'), 'gemini-3.1-flash-lite');
+  assert.equal(
+    providers.resolveModel('openrouter', 'google/gemini-2.0-flash-001'),
+    'google/gemini-3.5-flash'
+  );
+
+  // A current model, and an empty choice, are left to the normal path.
+  assert.equal(providers.resolveModel('gemini', 'gemini-2.5-pro'), 'gemini-2.5-pro');
+  assert.equal(providers.resolveModel('gemini', ''), providers.get('gemini').defaultModel);
+  assert.equal(providers.retiredReplacement('gemini', 'gemini-2.5-pro'), null);
+  assert.equal(providers.retiredReplacement('gemini', ''), null);
+});
+
+test('the default model and the offered list are all current', () => {
+  const gemini = providers.get('gemini');
+  const retired = Object.keys(gemini.retiredModels);
+
+  assert.ok(!retired.includes(gemini.defaultModel), 'the default must not be a withdrawn model');
+  gemini.models.forEach((model) => {
+    assert.ok(!retired.includes(model), `${model} is withdrawn and should not be offered`);
+  });
+});
+
+test('a withdrawn model goes out on the wire as its replacement', () => {
+  const request = providers.buildRequest(
+    'gemini',
+    Object.assign({ model: 'gemini-2.0-flash' }, PROMPT)
+  );
+
+  assert.ok(
+    request.url.includes('models/gemini-3.5-flash:generateContent'),
+    `expected the replacement model in ${request.url}`
   );
 });
 

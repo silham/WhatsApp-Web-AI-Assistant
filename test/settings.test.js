@@ -99,3 +99,151 @@ test('corrupt storage is treated as empty rather than crashing the content scrip
   assert.deepEqual(loaded.apiKeys, {});
   assert.deepEqual(loaded.models, {});
 });
+
+test('a fresh install starts in English with the reply language on auto', () => {
+  const loaded = settings.fromStored({});
+
+  assert.equal(loaded.uiLanguage, 'en');
+  assert.equal(loaded.replyLanguage, settings.DEFAULT_REPLY_LANGUAGE);
+});
+
+test('a chosen interface language and reply language survive a round trip', () => {
+  const stored = settings.toStored(
+    settings.fromStored({ uiLanguage: 'ta', replyLanguage: 'ta' })
+  );
+
+  assert.equal(stored.uiLanguage, 'ta');
+  assert.equal(stored.replyLanguage, 'ta');
+  assert.equal(settings.fromStored(stored).uiLanguage, 'ta');
+  assert.equal(settings.fromStored(stored).replyLanguage, 'ta');
+});
+
+test('a region tag stored as the interface language is folded to its base', () => {
+  assert.equal(settings.fromStored({ uiLanguage: 'ta-LK' }).uiLanguage, 'ta');
+});
+
+test('a language that no longer exists falls back instead of breaking the UI', () => {
+  const loaded = settings.fromStored({ uiLanguage: 'kl', replyLanguage: 'kl' });
+
+  assert.equal(loaded.uiLanguage, 'en');
+  assert.equal(loaded.replyLanguage, 'auto');
+});
+
+test('the interface language does not disturb the reply language', () => {
+  const loaded = settings.fromStored({ uiLanguage: 'ta', replyLanguage: 'en' });
+
+  assert.equal(loaded.uiLanguage, 'ta');
+  assert.equal(loaded.replyLanguage, 'en', 'reading Tamil menus must not force Tamil replies');
+});
+
+test('a pinned model that the vendor withdrew is migrated to its replacement', () => {
+  const stored = { aiModels: { gemini: 'gemini-2.0-flash', openai: 'gpt-4o-mini' } };
+  const loaded = settings.fromStored(stored);
+
+  assert.equal(loaded.models.gemini, 'gemini-3.5-flash');
+  assert.equal(loaded.models.openai, 'gpt-4o-mini', 'a current model is left alone');
+  assert.equal(loaded.migrated, true, 'the rewrite has to be persisted');
+  assert.equal(stored.aiModels.gemini, 'gemini-2.0-flash', 'the stored object is not mutated');
+});
+
+test('a settings load with only current models is not flagged as migrated', () => {
+  const loaded = settings.fromStored({ aiModels: { gemini: 'gemini-2.5-pro' } });
+
+  assert.equal(loaded.models.gemini, 'gemini-2.5-pro');
+  assert.equal(loaded.migrated, false);
+});
+
+/**
+ * Reloading the extension orphans the content script already in the tab. Every
+ * chrome.* call from it then throws, and an unhandled one shows up as a raw
+ * "Extension context invalidated" in the page console - the failure this suite
+ * pins down, because the user's only way out is to refresh the page.
+ */
+
+const i18n = require('../lib/i18n.js');
+
+/** Runs a body with chrome.* stubbed, restoring whatever was there before. */
+async function withChrome(stub, body) {
+  const had = Object.prototype.hasOwnProperty.call(globalThis, 'chrome');
+  const previous = globalThis.chrome;
+  globalThis.chrome = stub;
+
+  try {
+    return await body();
+  } finally {
+    if (had) globalThis.chrome = previous;
+    else delete globalThis.chrome;
+  }
+}
+
+/** A live extension: an id on runtime, and storage that records what it got. */
+function liveChrome(initial = {}) {
+  const written = {};
+  const removed = [];
+
+  return {
+    written,
+    removed,
+    runtime: { id: 'test-extension-id' },
+    storage: {
+      sync: {
+        get: async () => initial,
+        set: async (items) => Object.assign(written, items),
+        remove: async (key) => removed.push(key)
+      }
+    }
+  };
+}
+
+test('settings load and save go through chrome.storage.sync', async () => {
+  const stub = liveChrome({ aiProvider: 'groq', aiApiKeys: { groq: 'gsk_x' } });
+
+  await withChrome(stub, async () => {
+    const loaded = await settings.load();
+    assert.equal(loaded.provider, 'groq');
+
+    await settings.save(loaded);
+  });
+
+  assert.equal(stub.written.aiProvider, 'groq');
+  assert.deepEqual(stub.removed, ['geminiApiKey'], 'the legacy key is cleared on every save');
+});
+
+test('an orphaned script is told to refresh rather than shown a Chrome error', async () => {
+  const orphaned = { runtime: {}, storage: { sync: { get: async () => ({}), set: async () => {} } } };
+  const expected = i18n.t('notify.contextInvalidated');
+
+  await withChrome(orphaned, async () => {
+    await assert.rejects(() => settings.load(), { message: expected });
+    await assert.rejects(() => settings.save(settings.fromStored({})), { message: expected });
+  });
+});
+
+test('a storage call that fails mid-flight is reported the same way', async () => {
+  const dying = liveChrome();
+  dying.storage.sync.set = async () => {
+    throw new Error('Extension context invalidated.');
+  };
+
+  await withChrome(dying, async () => {
+    await assert.rejects(
+      () => settings.save(settings.fromStored({})),
+      { message: i18n.t('notify.contextInvalidated') }
+    );
+  });
+});
+
+test('a genuine storage failure keeps its own message', async () => {
+  const full = liveChrome();
+  full.storage.sync.set = async () => {
+    throw new Error('QUOTA_BYTES_PER_ITEM quota exceeded');
+  };
+
+  await withChrome(full, async () => {
+    await assert.rejects(
+      () => settings.save(settings.fromStored({})),
+      { message: 'QUOTA_BYTES_PER_ITEM quota exceeded' },
+      'only the orphaned-context failure is rewritten'
+    );
+  });
+});

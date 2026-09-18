@@ -55,6 +55,9 @@ function createIsolatedWorld() {
       local: { get: async () => ({}), set: async () => {} }
     },
     runtime: {
+      // A live extension context always has an id; the content script reads it
+      // to tell itself apart from a copy orphaned by an extension reload.
+      id: 'test-extension-id',
       onMessage: { addListener: noop },
       getURL: (p) => p,
       // Every provider call goes through the background worker; record them.
@@ -172,4 +175,36 @@ test('a worker error surfaces as a message the user can read', async () => {
     () => context.whatsappAI.callProvider('Alice: hi'),
     /rejected the API key/
   );
+});
+
+/** A fresh isolated world with the content script already evaluated in it. */
+function loadedWorld() {
+  const context = createIsolatedWorld();
+  for (const file of contentScript.js) {
+    const source = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    vm.runInContext(source, context, { filename: file });
+  }
+  return context;
+}
+
+test("an orphaned content script asks the user to reload, not Chrome's raw error", async () => {
+  const context = loadedWorld();
+
+  // What an extension reload does to the copy already injected in the tab.
+  delete context.chrome.runtime.id;
+
+  await assert.rejects(
+    () => context.whatsappAI.callProvider('Alice: hi'),
+    /Refresh this page/,
+    '"Extension context invalidated" is not something a user can act on'
+  );
+});
+
+test('a context lost mid-flight is translated too', async () => {
+  const context = loadedWorld();
+  context.chrome.runtime.sendMessage = async () => {
+    throw new Error('Extension context invalidated.');
+  };
+
+  await assert.rejects(() => context.whatsappAI.callProvider('Alice: hi'), /Refresh this page/);
 });
