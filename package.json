@@ -43,7 +43,7 @@
     "package": "npm run verify && node scripts/package.js"
   },
   "devDependencies": {
-    "eslint": "^10.9.1",
-    "globals": "^17.11.0"
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0"
   }
 }
